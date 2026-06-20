@@ -121,9 +121,9 @@ func RegisterMetadataOnNetwork(
 	createdBy string,
 	updatedBy string,
 ) error {
-	fmt.Printf("--> Submit Transaction: RegisterMetadata | ID: %s\n", id)
+	fmt.Printf("--> Submit Transaction: RegisterMetadataOnNetwork | ID: %s\n", id)
 	_, err := contract.SubmitTransaction(
-		"RegisterMetadata",
+		"RegisterMetadataOnNetwork",
 		id,
 		name,
 		value,
@@ -137,7 +137,7 @@ func RegisterMetadataOnNetwork(
 		updatedBy,
 	)
 	if err != nil {
-		return fmt.Errorf("chaincodeSdk.RegisterMetadata: Internal error. Failed to submit transaction: %w", err)
+		return fmt.Errorf("chaincodeSdk.RegisterMetadataOnNetwork: Internal error. Failed to submit transaction: %w", err)
 	}
 	fmt.Println("*** Transaction committed successfully")
 	return nil
@@ -146,10 +146,10 @@ func RegisterMetadataOnNetwork(
 func GetAllMetadataFromNetwork(
 	contract *networkClient.Contract,
 ) ([]byte, error) {
-	fmt.Printf("--> Evaluate Transaction: GetAllMetadata\n")
-	result, err := contract.EvaluateTransaction("GetAllMetadata")
+	fmt.Printf("--> Evaluate Transaction: GetAllMetadataFromNetwork\n")
+	result, err := contract.EvaluateTransaction("GetAllMetadataFromNetwork")
 	if err != nil {
-		return nil, fmt.Errorf("chaincodeSdk.GetAllMetadata: Internal error. Failed to evaluate transaction: %w", err)
+		return nil, fmt.Errorf("chaincodeSdk.GetAllMetadataFromNetwork: Internal error. Failed to evaluate transaction: %w", err)
 	}
 	return result, nil
 }
