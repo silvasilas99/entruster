@@ -6,7 +6,7 @@ import (
     "os"
     "path"
     "time"
-    "github.com/hyperledger/fabric-gateway/pkg/networkClient"
+    networkClient "github.com/hyperledger/fabric-gateway/pkg/client"
     "github.com/hyperledger/fabric-gateway/pkg/hash"
     "github.com/hyperledger/fabric-gateway/pkg/identity"
     "github.com/silvasilas99/entruster/config"
