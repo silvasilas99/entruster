@@ -11,36 +11,39 @@ import (
 func CreateMetadataHandler(contract *client.Contract) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req MetadataModel
+
 		if err := c.ShouldBindJSON(&req); err != nil {
 			utils.SendError(c, http.StatusBadRequest, "Invalid request body. Check the required fields and their types.")
 			return
 		}
-		// Step 2 — call service layer
-		if err := RegisterMetadata(contract, req); err != nil {
+		if err := RegisterMetadataOnNetwork(contract, req); err != nil {
 			utils.SendError(c, http.StatusInternalServerError, err.Error())
 			return
 		}
-		// Step 3 — send success response
 		utils.SendSuccess(c, "Metadata registered on blockchain", gin.H{
-			"id": req.ID,
+			"patient_id": req.PatientID,
+			"asset_id":   req.AssetID,
 		})
 	}
 }
 
 func GetAllMetadataHandler(contract *client.Contract) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		metadataList, err := GetAllMetadata(contract)
-		if err != nil {
-			utils.SendError(c, http.StatusInternalServerError, err.Error())
-			return
-		}
-		utils.SendSuccess(c, "Metadata list retrieved successfully", metadataList)
+		utils.SendError(c, http.StatusNotImplemented, "GetMetadataByDID is not implemented yet")
+		return
+		// metadataList, err := fabric.GetAllMetadataFromNetwork(contract)
+		// if err != nil {
+		// 	utils.SendError(c, http.StatusInternalServerError, err.Error())
+		// 	return
+		// }
+		// utils.SendSuccess(c, "Metadata list retrieved successfully", metadataList)
 	}
 }
 
 func GetMetadataByDIDHandler(contract *client.Contract) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		utils.SendError(c, http.StatusNotImplemented, "GetMetadataByDID is not implemented yet")
+		return
 		// id := c.Param("id")
 		// if id == "" {
 		// 	utils.SendError(c, http.StatusBadRequest, "ID parameter is required")
