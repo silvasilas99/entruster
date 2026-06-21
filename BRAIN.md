@@ -170,3 +170,121 @@ The `MetadataModel` struct was also missing the `ZKPProof` field that the chainc
 }
 ```
 > `patient_id` and `asset_id` must be numeric strings (e.g. `"1"`, `"42"`) since the chaincode converts them to `uint64`.
+
+---
+
+## Full Chaincode Layer Implementation
+
+### Context
+`MetadataContracts.go` existed but was completely empty. `MetadataController.go` had all handlers stubbed with `501 Not Implemented`. `api_routes.go` only wired `POST /` and `GET /`, with the remaining routes commented out. `MetadataRepository.go` held duplicate versions of the two functions already moved from `fabric/`.
+
+### Actions Taken
+
+#### 1. `MetadataContracts.go` — implemented all 6 contract functions
+
+| Function | SDK Method | Chaincode Transaction |
+|---|---|---|
+| `CreateMetadata` | `SubmitTransaction` | `RegisterMetadataOnNetwork` |
+| `GetAllMetadata` | `EvaluateTransaction` | `GetAllMetadataFromNetwork` |
+| `GetMetadataByID` | `EvaluateTransaction` | `GetMetadataById` |
+| `UpdateMetadataByID` | `SubmitTransaction` | `UpdateMetadataById` |
+| `DeleteMetadataByID` | `SubmitTransaction` | `DeleteMetadataById` |
+| `GetMetadataAuditoryByID` | `EvaluateTransaction` | `GetMetadataAuditoryById` |
+
+- `EvaluateTransaction` is used for read-only queries (no ledger write, no consensus).
+- `SubmitTransaction` is used for state-changing operations (goes through endorsement + ordering).
+- All responses from `Evaluate` are JSON-unmarshalled into typed structs.
+
+#### 2. `MetadataModel.go` — added `MetadataHistoryEntry`
+
+```go
+type MetadataHistoryEntry struct {
+    TxID      string        `json:"tx_id"`
+    Timestamp string        `json:"timestamp"`
+    IsDelete  bool          `json:"is_delete"`
+    Value     MetadataModel `json:"value"`
+}
+```
+Used as the return type of `GetMetadataAuditoryByID` to represent each entry in an asset's audit trail.
+
+#### 3. `MetadataController.go` — fully implemented all handlers
+
+Replaced all `501 Not Implemented` stubs with real implementations calling the corresponding contract function. Added `GetMetadataAuditoryByIDHandler`. Removed the old `ExportMetadataAsCsvHandler` stub.
+
+#### 4. `api_routes.go` — wired all 6 routes
+
+```
+POST   /api/metadata/
+GET    /api/metadata/
+GET    /api/metadata/:id
+PUT    /api/metadata/:id
+DELETE /api/metadata/:id
+GET    /api/metadata/:id/auditory
+```
+
+The `/auditory` sub-path avoids a gin router conflict with the plain `/:id` parameter route.
+
+#### 5. `MetadataRepository.go` — cleaned up
+
+Removed the duplicate `RegisterMetadataOnNetwork` and `GetAllMetadataFromNetwork` functions. The file now serves as a package-responsibility comment only, since all chaincode I/O lives in `MetadataContracts.go`.
+
+### Responsibility Split (final)
+
+```
+MetadataModel.go      — data types & JSON unmarshalling
+MetadataContracts.go  — Fabric ledger I/O (chaincode calls)
+MetadataController.go — HTTP handlers (gin)
+MetadataRepository.go — (empty, reserved for future DB/off-chain queries)
+```
+
+---
+
+## Added Incremental `ID` Field to `MetadataModel`
+
+### Context
+The chaincode auto-generates asset IDs via an internal counter (`_metadata_id_counter`). Previously the Go model had no `ID` field, so read responses from the ledger would silently drop the `id` value.
+
+### Actions Taken
+Added `ID uint64` as the first field of `MetadataModel`:
+
+```go
+ID uint64 `json:"id,omitempty"`
+```
+
+**Design decisions:**
+- **`uint64`** — matches the chaincode's counter type.
+- **`omitempty`** — the field is absent from `POST` bodies when zero, so clients never need to send it on create.
+- **No change to `CreateMetadata`** — `ID` is never passed as a transaction argument; the chaincode generates it.
+- **Automatic on reads** — the existing `UnmarshalJSON` picks up `"id"` from chaincode JSON responses for `GetAll`, `GetById`, and `GetAuditory` without any additional code.
+
+---
+
+## Swagger Documentation Integration
+
+### Context
+The application had partial setup for Swagger (the Swagger annotations were defined on `main.go` and `MetadataController.go`, and the anonymous import of `_ "github.com/silvasilas99/entruster/docs"` was present in `main.go`). However:
+1. The `docs/` package had not been generated yet, causing compile errors.
+2. The `/swagger/*any` route handler was not registered in `routes/api_routes.go`.
+3. Generating the documentation failed because the annotations in `MetadataController.go` referenced `utils.SuccessResponse` and `utils.ErrorResponse` structs which did not exist.
+
+### Actions Taken
+1. **Added Response Structs**: Created `SuccessResponse` and `ErrorResponse` structs inside [response.go](file:///mnt/d/@PROJETOS/Mestrado/Interopchain/entruster/utils/response.go). Updated `SendSuccess` and `SendError` helpers to use these typed structs instead of untyped `gin.H` maps.
+2. **Configured Router**: Added the `/swagger/*any` GET route inside [api_routes.go](file:///mnt/d/@PROJETOS/Mestrado/Interopchain/entruster/routes/api_routes.go) to bind the Gin middleware using `github.com/swaggo/gin-swagger` and `github.com/swaggo/files`.
+3. **Generated Documentation**: Executed `swag init -g cmd/server/main.go` to generate the `docs/` directory (`docs.go`, `swagger.json`, `swagger.yaml`).
+4. **Resolved Module Dependencies**: Ran `go mod tidy` to add the Swagger middleware modules (`github.com/swaggo/gin-swagger` and `github.com/swaggo/files`) to the direct requirements in `go.mod`.
+5. **Verified Build**: Verified that the server successfully compiles without any errors (`go build ./cmd/server`).
+
+---
+
+## Fixed JSON Unmarshal Error: Type Mismatch for `patient_id` and `asset_id`
+
+### Context
+When calling `GET /api/metadata`, the application failed with the error:
+`metadata.GetAllMetadata: failed to unmarshal response: json: cannot unmarshal number into Go struct field .patient_id of type string`
+
+This happens because the chaincode Go code treats `patientID` and `assetID` as `uint64`. When writing to/reading from the Fabric ledger state, the values are marshalled into JSON as raw numeric values (e.g. `1`), whereas the API's `MetadataModel` defined `PatientID` and `AssetID` as `string`.
+
+### Actions Taken
+1. **Created `flexibleString` Helper**: Introduced a custom type alias `flexibleString string` inside [MetadataModel.go](file:///mnt/d/@PROJETOS/Mestrado/Interopchain/entruster/domain/metadata/MetadataModel.go). Implemented custom JSON unmarshalling logic on it to handle unmarshalling from both string values and numeric values (using `json.Number`).
+2. **Updated `UnmarshalJSON`**: Configured `MetadataModel`'s custom JSON unmarshaller to parse `patient_id` and `asset_id` using this `flexibleString` helper. Outer fields override the inner embedded struct tags during unmarshalling, successfully avoiding the unmarshal error while preserving the `string` representation inside the Go code.
+3. **Verified and Rebuilt**: Regenerated Swagger docs and successfully compiled the server with `go build ./cmd/server`.
