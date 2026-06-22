@@ -288,3 +288,42 @@ This happens because the chaincode Go code treats `patientID` and `assetID` as `
 1. **Created `flexibleString` Helper**: Introduced a custom type alias `flexibleString string` inside [MetadataModel.go](file:///mnt/d/@PROJETOS/Mestrado/Interopchain/entruster/domain/metadata/MetadataModel.go). Implemented custom JSON unmarshalling logic on it to handle unmarshalling from both string values and numeric values (using `json.Number`).
 2. **Updated `UnmarshalJSON`**: Configured `MetadataModel`'s custom JSON unmarshaller to parse `patient_id` and `asset_id` using this `flexibleString` helper. Outer fields override the inner embedded struct tags during unmarshalling, successfully avoiding the unmarshal error while preserving the `string` representation inside the Go code.
 3. **Verified and Rebuilt**: Regenerated Swagger docs and successfully compiled the server with `go build ./cmd/server`.
+
+---
+
+## Missing Standalone Chaincode Module
+
+### Context
+Attempting `./network.sh deployCC -ccp ../../chaincode -ccl go` failed with:
+```
+Path to chaincode does not exist. Please provide different path.
+```
+Additionally, the peer was unreachable (`connection refused on 7051`) because the network was not running.
+
+### Analysis & Findings
+- **Architecture mismatch:** `domain/metadata/MetadataContracts.go` is the **API client** — it uses `fabric-gateway/pkg/client` to call chaincode via gRPC. It is NOT on-chain chaincode. No actual chaincode existed in the project.
+- **Real chaincode requirements:** On-chain chaincode must use `github.com/hyperledger/fabric-contract-api-go`, implement `contractapi.Contract`, have its own `go.mod`, and live in a separate Go module.
+- **Stale Docker state:** The network containers from a previous session were in `Exited` state but their ledger volumes were still present. Running `network.sh up` again caused `"ledger already exists"` errors on the peers, preventing them from starting correctly.
+
+### Actions Taken
+1. **Created standalone chaincode module** at `chaincode/` with its own `go.mod` (`module github.com/silvasilas99/entruster/chaincode`) and `chaincode/main.go` implementing all 6 transactions:
+   - `RegisterMetadataOnNetwork` — creates asset with auto-incremented ID
+   - `GetAllMetadataFromNetwork` — range query over all assets
+   - `GetMetadataById` — single asset lookup
+   - `UpdateMetadataById` — replaces mutable fields
+   - `DeleteMetadataById` — removes asset from ledger
+   - `GetMetadataAuditoryById` — returns full audit history via `GetHistoryForKey`
+2. **Full teardown before restart:** Ran `./network.sh down` to remove stale containers AND volumes, then `./network.sh up createChannel -c metadatachannel -ca` for a clean boot.
+3. **Deployed with correct absolute path:**
+   ```bash
+   export GOROOT=/home/silas/go_dist/go && export PATH=$PATH:$GOROOT/bin
+   ./network.sh deployCC \
+     -c metadatachannel -ccn basic \
+     -ccp /mnt/d/@PROJETOS/Mestrado/Interopchain/entruster/chaincode \
+     -ccl go
+   ```
+4. **Result:** Chaincode `basic_1.0` (sequence 1) committed on `metadatachannel`, approved by both Org1MSP and Org2MSP.
+   - Package ID: `basic_1.0:da066418ccd0481272dd92c966567a19a7a2a32409ab15e2f03c28d6a8b64127`
+
+### Key Rule Going Forward
+**Always run `./network.sh down` before `./network.sh up`** when restarting after a previous session, to avoid stale volume conflicts. The correct deploy command uses the absolute path to `chaincode/`.

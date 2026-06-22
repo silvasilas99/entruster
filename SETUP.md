@@ -6,32 +6,45 @@
 # Install HyperledgerFabric binaries
 curl -sSL https://bit.ly/2ysbOFE | bash -s
 
-# Set required vars (you can persist adding this in ~/.bashrc)
-export CONTAINER_CLI_COMPOSE="docker compose"
+# Set required vars (persist by adding to ~/.bashrc)
 export GOROOT=/home/silas/go_dist/go
 export PATH=$PATH:$GOROOT/bin
 export GOPATH=/home/silas/go
 export PATH=$PATH:$GOPATH/bin
+export CONTAINER_CLI_COMPOSE="docker compose"
+```
+
+Install Go dependencies:
+```bash
+# API server
+go mod tidy
+
+# Chaincode (separate module)
+cd chaincode && go mod tidy && cd ..
 ```
 
 -----
 
 ## Up the network
 
-```bash
-# Purge the previous configs
-cd fabric-samples/test-network
-./network.sh down
-cd ../../
+> ⚠️ Always run `./network.sh down` first to clear stale Docker volumes.
 
-# Create the test network, with CounchDB, Go and the metadatachannel and deploy the chaincode
+```bash
 cd fabric-samples/test-network
-./network.sh up -s couchdb
-./network.sh createChannel -c metadatachannel
+
+# Purge previous state (containers + volumes)
+./network.sh down
+
+# Create the test network with CouchDB and the metadatachannel
+./network.sh up createChannel -c metadatachannel -ca
+
+# Deploy the chaincode (absolute path required)
 ./network.sh deployCC \
   -c metadatachannel -ccn basic \
-  -ccp ../../chaincode -ccl go
-cd ../../
+  -ccp /mnt/d/@PROJETOS/Mestrado/Interopchain/entruster/chaincode \
+  -ccl go
+
+cd ../..
 ```
 
 -----
@@ -45,3 +58,6 @@ export TEST_NETWORK_PATH='/mnt/d/@PROJETOS/Mestrado/Interopchain/entruster/fabri
 # Compile and run the server entrypoint
 go run cmd/server/main.go
 ```
+
+Server: http://localhost:8080
+Swagger: http://localhost:8080/swagger/index.html
