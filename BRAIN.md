@@ -327,3 +327,50 @@ Additionally, the peer was unreachable (`connection refused on 7051`) because th
 
 ### Key Rule Going Forward
 **Always run `./network.sh down` before `./network.sh up`** when restarting after a previous session, to avoid stale volume conflicts. The correct deploy command uses the absolute path to `chaincode/`.
+
+---
+
+## Containerization & Environment Automation
+
+### Context
+The user wanted to act as a DevOps engineer and dockerize the application so that a single `docker compose up -d` command could spin up the entire Hyperledger Fabric network (following the steps in `SETUP.md`), deploy the chaincode, and boot up the API container correctly connected to the network.
+
+### Analysis & Findings
+1. **Network Mismatches**: The default `docker-compose.yml` network rules conflict with Fabric's `network.sh`, which automatically provisions its own network `fabric_test`. When the Go API container booted on the docker-compose network, it was unable to resolve peer nodes.
+2. **Setup Script Containerization (`docker-in-docker`)**: Running `network.sh` requires access to the docker daemon. To automate this, we built a `setup` container that mounts `/var/run/docker.sock`. However, because the setup container was technically running on a separate docker bridge network, mapping ports and executing Docker CLI commands created labeling and working directory mismatches with the host daemon.
+3. **Git Ownership during Chaincode Package**: Inside the setup container, packaging the chaincode failed with `fatal: detected dubious ownership in repository` because the container user (root) didn't match the host user that owned the mounted volume.
+4. **Race Condition**: The `api` container booted before the Fabric network and chaincode were ready. Fabric's CA generation and chaincode deployment can take 1-2 minutes.
+
+### Solutions & Actions Taken
+1. **Docker-in-Docker Setup Container**: Created `Dockerfile.setup` and `init.sh` to encapsulate the deployment logic. We configured the `setup` container in `docker-compose.yml` with `network_mode: "host"`, mapped `${PWD}` identically, and set the `working_dir` explicitly. This allows the setup container to seamlessly control the host's docker daemon and communicate with Fabric CAs natively over localhost during network bring-up without volume mounting conflicts.
+2. **Git Safe Directory Fix**: Modified `init.sh` to execute `git config --global --add safe.directory '*'` before calling `network.sh deployCC`, solving the `go list` packaging failures.
+3. **Dynamic Network Join**: Modified `init.sh` to run `docker network connect fabric_test entruster-api` upon successful deployment, natively bridging the API to Fabric's internal network.
+4. **API Container Resiliency**: Created `Dockerfile.api` using a multi-stage Go build. Set `restart: on-failure` for the `api` service in docker-compose. The API container continuously attempts to boot and connect; once `init.sh` completes the Fabric setup and joins the `api` container to `fabric_test`, the API successfully establishes its gRPC connection and serves traffic on port `8080`.
+5. **Config & Environment Variables**: Refactored the Go API configuration (`config/config.go`) to read paths dynamically via environment variables so that paths resolve correctly whether running locally or inside the Docker container.
+
+---
+
+## API to Fabric Connection Errors (TLS & Reachability)
+
+### Context
+When testing the newly dockerized API container, calling the POST `/api/metadata` endpoint resulted in various gRPC connection errors:
+1. `rpc error: code = Unavailable desc = name resolver error: produced zero addresses`
+2. `rpc error: code = Unavailable desc = connection error: desc = "transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate signed by unknown authority"`
+3. `rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 172.19.0.5:7051: connect: no route to host"`
+4. `rpc error: code = FailedPrecondition desc = no combination of peers can be derived which satisfy the endorsement policy: No metadata was found for chaincode basic in channel metadatachannel`
+
+### Analysis & Findings
+1. **Network Disconnection (`no route to host`)**: Occurred because `init.sh` ran `network.sh down` to clean up old state, which wiped and recreated the `fabric_test` network. The API container was still attached to the old, deleted network interface and couldn't route traffic to the newly created peers.
+2. **Missing `fabric_test` in Compose**: The `docker-compose.yml` file did not declare `fabric_test` as an external network, so the `docker compose up` command couldn't natively wire the API container to it from the start.
+3. **TLS Handshake Failure**: The Fabric Gateway SDK loads the TLS certificate at initialization. Because the API container started and cached the certificates from an earlier failed network boot, it rejected connections when `init.sh` eventually booted a fresh network with new cryptographic material.
+4. **Broken Crypto Material Generation**: A previous cleanup attempt using `rm -rf` accidentally deleted git-tracked files like `organizations/fabric-ca/registerEnroll.sh`. As a result, subsequent `./network.sh up` commands failed silently midway, leaving empty TLS folders for the orderer and causing Genesis block generation to fail.
+5. **Chaincode Discovery Failure (`No metadata was found...`)**: Even after the network was fixed, the API container booted slightly before the chaincode was committed. The Gateway SDK cached the discovery response showing no chaincode, leading to `FailedPrecondition` errors.
+
+### Solutions & Actions Taken
+1. **Network Wiring**: Explicitly declared `fabric_test` as an external network in `docker-compose.yml` and assigned the `api` container to it, allowing Docker to handle the network lifecycle properly.
+2. **Synchronized Boot via Sentinel**: Added a `.fabric_ready` file sentinel mechanism:
+   - Modified `init.sh` to write `.fabric_ready` to the shared project directory *only after* the chaincode is fully deployed and committed.
+   - Created a new `entrypoint.sh` for the `api` container that runs a `while` loop waiting for the `.fabric_ready` file before it starts the Go server.
+   - This completely solved the TLS caching and chaincode discovery issues by ensuring the Go API only loads certificates and queries discovery after the chaincode is confirmed ready.
+3. **Nuclear Reset & Git Restore**: Recovered the accidentally deleted `registerEnroll.sh` using `git restore test-network/organizations/`. Performed a full cleanup using `network.sh down` and removed stale `organizations/` directories to force a pristine regeneration of all crypto materials.
+4. **Gateway Cache Clear**: With the `entrypoint.sh` wait-loop in place, the `api` container naturally starts with a clean Gateway cache holding the newly committed chaincode metadata, allowing successful transactions.

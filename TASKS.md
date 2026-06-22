@@ -21,13 +21,4 @@ As a developer specialized on search engines like elasticSearch, Golang and bloc
   metadata is updated, and list the metadata with the data in elasticsearch in the searchs of GetAllMetadataHandler
   of domain/metadata/MetadataController
 
-Error {
-      "success": false,
-      "message": "metadata.DeleteMetadataByID: failed to submit transaction: rpc error: code = Aborted desc = failed to
-  endorse transaction, see attached details for more info"
-  } while curl --location --request DELETE 'http://localhost:8080/api/metadata/1'
-
 Add what was learned and done in brain.md
-
-Act like a DevOps enginneer and dockernerize the application. On "docker compose up -d" should execute the
-  explaings on SETUP.md and BRAIN.md, and

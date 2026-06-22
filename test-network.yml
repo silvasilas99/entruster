@@ -1,0 +1,12 @@
+services:
+  dummy:
+    image: alpine
+    command: sleep 10
+    networks:
+      - test_net
+networks:
+  test_net:
+    name: fabric_test
+    labels:
+      com.docker.compose.network: "test"
+      com.docker.compose.project: "compose"
