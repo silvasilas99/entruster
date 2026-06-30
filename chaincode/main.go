@@ -36,14 +36,6 @@ type MetadataAsset struct {
 	UpdatedBy     string `json:"updated_by"`
 }
 
-// HistoryEntry wraps a single record from the asset's audit history.
-type HistoryEntry struct {
-	TxID      string        `json:"tx_id"`
-	Timestamp string        `json:"timestamp"`
-	IsDelete  bool          `json:"is_delete"`
-	Value     MetadataAsset `json:"value"`
-}
-
 // ────────────────────────────────────────────────────────────
 //  Initialisation
 // ────────────────────────────────────────────────────────────
@@ -136,19 +128,19 @@ func (c *MetadataContract) RegisterMetadataOnNetwork(
 	updatedAt string,
 	createdBy string,
 	updatedBy string,
-) error {
+) (string, error) {
 	patientID, err := mustParseUint64(patientIDStr, "patientID")
 	if err != nil {
-		return err
+		return "", err
 	}
 	assetID, err := mustParseUint64(assetIDStr, "assetID")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	id, err := nextID(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	asset := MetadataAsset{
@@ -167,7 +159,7 @@ func (c *MetadataContract) RegisterMetadataOnNetwork(
 		CreatedBy:     createdBy,
 		UpdatedBy:     updatedBy,
 	}
-	return putAsset(ctx, asset)
+	return strconv.FormatUint(id, 10), putAsset(ctx, asset)
 }
 
 // GetAllMetadataFromNetwork returns every active (non-deleted) metadata asset on the ledger as a JSON array.
@@ -275,42 +267,7 @@ func (c *MetadataContract) DeleteMetadataById(
 	return putAsset(ctx, *asset)
 }
 
-// GetMetadataAuditoryById returns the full history (audit trail) for the given asset ID.
-func (c *MetadataContract) GetMetadataAuditoryById(
-	ctx contractapi.TransactionContextInterface,
-	idStr string,
-) ([]HistoryEntry, error) {
-	id, err := mustParseUint64(idStr, "id")
-	if err != nil {
-		return nil, err
-	}
 
-	iter, err := ctx.GetStub().GetHistoryForKey(assetKey(id))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get history for asset %d: %w", id, err)
-	}
-	defer iter.Close()
-
-	var history []HistoryEntry
-	for iter.HasNext() {
-		mod, err := iter.Next()
-		if err != nil {
-			return nil, err
-		}
-		entry := HistoryEntry{
-			TxID:      mod.TxId,
-			Timestamp: time.Unix(mod.Timestamp.Seconds, int64(mod.Timestamp.Nanos)).UTC().Format(time.RFC3339),
-			IsDelete:  mod.IsDelete,
-		}
-		if !mod.IsDelete {
-			if err := json.Unmarshal(mod.Value, &entry.Value); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal history entry: %w", err)
-			}
-		}
-		history = append(history, entry)
-	}
-	return history, nil
-}
 
 // ────────────────────────────────────────────────────────────
 //  Entry point

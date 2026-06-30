@@ -5,6 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/hyperledger/fabric-gateway/pkg/client"
+	"github.com/silvasilas99/entruster/audit"
+	"github.com/silvasilas99/entruster/elasticsearch"
 	"github.com/silvasilas99/entruster/utils"
 )
 
@@ -44,17 +46,77 @@ func CreateMetadataHandler(contract *client.Contract, observer *MetadataObserver
 //	@Description	Evaluates GetAllMetadataFromNetwork on the Fabric ledger and returns every stored metadata asset.
 //	@Tags			metadata
 //	@Produce		json
-//	@Success		200	{object}	utils.SuccessResponse{data=[]MetadataModel}
+//	@Param			patient_id	query		string	false	"Filter by patient ID"
+//	@Param			asset_id	query		string	false	"Filter by asset ID"
+//	@Param			from		query		string	false	"Start date (created_at)"
+//	@Param			to			query		string	false	"End date (created_at)"
+//	@Success		200	{object}	utils.SuccessResponse{data=[]map[string]interface{}}
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/metadata/ [get]
-func GetAllMetadataHandler(contract *client.Contract, observer *MetadataObserver) gin.HandlerFunc {
+func GetAllMetadataHandler(contract *client.Contract, observer *MetadataObserver, elasticSvc *elasticsearch.ElasticService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		list, err := GetAllMetadata(contract, observer)
+		patientID := c.Query("patient_id")
+		assetID := c.Query("asset_id")
+		from := c.Query("from")
+		to := c.Query("to")
+
+		var mustClauses []map[string]interface{}
+
+		if patientID != "" {
+			mustClauses = append(mustClauses, map[string]interface{}{
+				"match": map[string]interface{}{"patient_id": patientID},
+			})
+		}
+		if assetID != "" {
+			mustClauses = append(mustClauses, map[string]interface{}{
+				"match": map[string]interface{}{"asset_id": assetID},
+			})
+		}
+
+		if from != "" || to != "" {
+			rangeQuery := map[string]interface{}{}
+			if from != "" {
+				rangeQuery["gte"] = from
+			}
+			if to != "" {
+				rangeQuery["lte"] = to
+			}
+			mustClauses = append(mustClauses, map[string]interface{}{
+				"range": map[string]interface{}{
+					"created_at": rangeQuery,
+				},
+			})
+		}
+
+		// Filter out soft-deleted records in ES
+		mustNotClauses := []map[string]interface{}{
+			{
+				"exists": map[string]interface{}{
+					"field": "deleted_at",
+				},
+			},
+		}
+
+		query := map[string]interface{}{
+			"query": map[string]interface{}{
+				"bool": map[string]interface{}{
+					"must":     mustClauses,
+					"must_not": mustNotClauses,
+				},
+			},
+		}
+
+		results, err := elasticSvc.SearchDocuments(c.Request.Context(), "metadata", query)
 		if err != nil {
-			utils.SendError(c, http.StatusInternalServerError, err.Error())
+			utils.SendError(c, http.StatusInternalServerError, "Failed to fetch metadata from search engine: "+err.Error())
 			return
 		}
-		utils.SendSuccess(c, "Metadata list retrieved successfully", list)
+
+		if observer != nil {
+			observer.OnList(len(results))
+		}
+
+		utils.SendSuccess(c, "Metadata list retrieved successfully", results)
 	}
 }
 
@@ -147,26 +209,22 @@ func DeleteMetadataByIDHandler(contract *client.Contract, observer *MetadataObse
 // GetMetadataAuditoryByIDHandler handles GET /api/metadata/:id/auditory
 //
 //	@Summary		Get audit trail for a metadata asset
-//	@Description	Evaluates GetMetadataAuditoryById on the Fabric ledger and returns the full immutable history of the asset.
+//	@Description	Returns the full immutable history of the asset from the audit service.
 //	@Tags			metadata
 //	@Produce		json
 //	@Param			id	path		string	true	"Asset ID (numeric string)"
-//	@Success		200	{object}	utils.SuccessResponse{data=[]MetadataHistoryEntry}
+//	@Success		200	{object}	utils.SuccessResponse{data=[]audit.AuditModel}
 //	@Failure		400	{object}	utils.ErrorResponse
-//	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/metadata/{id}/auditory [get]
-func GetMetadataAuditoryByIDHandler(contract *client.Contract) gin.HandlerFunc {
+func GetMetadataAuditoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if id == "" {
 			utils.SendError(c, http.StatusBadRequest, "ID parameter is required")
 			return
 		}
-		history, err := GetMetadataAuditoryByID(contract, id)
-		if err != nil {
-			utils.SendError(c, http.StatusInternalServerError, err.Error())
-			return
-		}
+		
+		history := auditSvc.GetByEntityID("Metadata", id)
 		utils.SendSuccess(c, "Metadata audit trail retrieved successfully", history)
 	}
 }

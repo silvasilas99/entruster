@@ -436,3 +436,46 @@ Any new domain entity that requires auditing should follow the same pattern:
 1. Create `<Entity>Observer.go` with typed hooks in the domain package.
 2. Add `*<Entity>Observer` parameters to the contract functions that change state.
 3. Wire `AuditService → <Entity>Observer` in `routes/api_routes.go`.
+
+---
+
+## Elasticsearch Integration & Lifecycle Sync
+
+### Context
+The user wanted to integrate a local containerized Elasticsearch engine for advanced metadata querying (e.g. by dates and matching properties) instead of relying solely on the Hyperledger Fabric ledger to read collections of data. They also requested that the newly created `AuditService` strictly handle the auditing endpoint (`/auditory`), fully decoupling this logic from the Fabric chaincode history functions.
+
+### Analysis & Findings
+1. **Chaincode Return Payload**: Our Go API's `CreateMetadata` calls `contract.SubmitTransaction`, which initially did not return the auto-generated `ID` assigned by the chaincode to the new asset. We couldn't properly sync Elasticsearch without this primary key.
+2. **Coupled Audit Architecture**: The `/api/metadata/:id/auditory` endpoint was originally directly invoking a chaincode function (`GetMetadataAuditoryById`) which queried `GetHistoryForKey` and parsed `MetadataHistoryEntry` objects. This made the chaincode heavy and tightly coupled the API to ledger history capabilities, rendering the new `AuditService` partially redundant.
+3. **Soft-deletion Support**: Records deleted from the ledger should still be searchable or traceable via Elasticsearch (or at least marked as soft-deleted) rather than permanently wiped.
+
+### Actions Taken
+
+#### 1. Elastic Search Engine (Docker)
+- Added `elasticsearch` (v8.13.0) to `docker-compose.yml`, running on a single-node discovery mode and exposed on port `9200`.
+- Passed the `ELASTICSEARCH_URL=http://elasticsearch:9200` environment variable to the `api` container so it automatically connects on boot.
+- Developed `ElasticClient.go` to manage connection pooling via the official `go-elasticsearch/v8` client.
+- Implemented `ElasticService.go` with foundational capabilities to `IndexDocument`, `UpdateDocument` (partial), `SearchDocuments`, and `DateRangeFilter` via native Elasticsearch Query DSL (`bool.must`, `range`).
+
+#### 2. Synchronizing Data via MetadataObserver
+We injected `ElasticService` into the `MetadataObserver` to automatically translate Fabric ledger lifecycle events into search engine sync operations:
+- **`OnCreate`**: Maps to an `IndexDocument` command to insert the fresh metadata record.
+- **`OnUpdate` (Heating)**: Re-indexes the updated `MetadataModel`, overwriting the older Elasticsearch document to keep the cache hot.
+- **`OnDelete`**: Triggers a partial `UpdateDocument` payload setting a `deleted_at` UTC timestamp flag (soft-delete mapping).
+
+#### 3. Chaincode ID Resolution
+To ensure the `MetadataObserver.OnCreate` hook has access to the primary key:
+- Edited `chaincode/main.go` -> `RegisterMetadataOnNetwork` to return `(string, error)` (the newly incremented ID).
+- Updated `MetadataContracts.go` to parse the returned byte array into the ID and feed it into `observer.OnCreate(id, req)`.
+
+#### 4. Audit Decoupling & Cleanup
+Completely decoupled auditing logic from the blockchain ledger state:
+- Removed `GetMetadataAuditoryById` and `HistoryEntry` from the smart contract (`chaincode/main.go`).
+- Removed `MetadataHistoryEntry` from `MetadataModel.go`.
+- Rerouted `GetMetadataAuditoryByIDHandler` in `MetadataController.go` to accept the `AuditService` directly and fetch immutable traces locally (`auditSvc.GetByEntityID("Metadata", id)`).
+- Updated Swagger documentation to natively return the `audit.AuditModel` response structure and recompiled (`swag init`).
+
+#### 5. Controller Search Overhaul
+- Refactored `GetAllMetadataHandler` (`GET /api/metadata/`) to evaluate the Elasticsearch cluster via `ElasticService.SearchDocuments` instead of querying the Fabric network.
+- Added native support for `patient_id` and `asset_id` matching, as well as `from` / `to` date range filtering (via `created_at`).
+- Implemented a `must_not` exclusion clause enforcing that any record containing a `deleted_at` field is omitted from standard read queries.

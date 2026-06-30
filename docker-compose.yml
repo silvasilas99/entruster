@@ -24,6 +24,7 @@ services:
       - TEST_NETWORK_PATH=/app/fabric-samples/test-network
       - PEER_ENDPOINT=dns:///peer0.org1.example.com:7051
       - PORT=8080
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
     volumes:
       - ./fabric-samples:/app/fabric-samples
       - .:/app/shared          # exposes project root so .fabric_ready sentinel is visible
@@ -34,6 +35,24 @@ services:
     depends_on:
       - setup
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    networks:
+      - default
+    restart: unless-stopped
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+
 networks:
   fabric_test:
     external: true
+
+volumes:
+  esdata:

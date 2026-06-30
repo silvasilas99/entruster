@@ -22,11 +22,10 @@ func CreateMetadata(contract *client.Contract, req MetadataModel, observer *Meta
 		req.UpdatedAt = now
 	}
 
-	_, err := contract.SubmitTransaction(
+	result, err := contract.SubmitTransaction(
 		"RegisterMetadataOnNetwork",
 		fmt.Sprintf("%d", req.PatientID), // uint64 — chaincode converts from string
 		fmt.Sprintf("%d", req.AssetID),   // uint64 — chaincode converts from string
-		req.ZKPProof,
 		req.Name,
 		req.Value,
 		req.Version,
@@ -41,10 +40,11 @@ func CreateMetadata(contract *client.Contract, req MetadataModel, observer *Meta
 	if err != nil {
 		return fmt.Errorf("metadata.CreateMetadata: failed to submit transaction: %w", err)
 	}
-	fmt.Println("*** Transaction committed successfully")
+	id := string(result)
+	fmt.Printf("*** Transaction committed successfully. Generated ID: %s\n", id)
 
 	if observer != nil {
-		observer.OnCreate(req)
+		observer.OnCreate(id, req)
 	}
 	return nil
 }
@@ -96,7 +96,6 @@ func UpdateMetadataByID(contract *client.Contract, id string, req MetadataModel,
 	_, err := contract.SubmitTransaction(
 		"UpdateMetadataById",
 		id,
-		req.ZKPProof,
 		req.Name,
 		req.Value,
 		req.Version,
@@ -135,17 +134,4 @@ func DeleteMetadataByID(contract *client.Contract, id string, observer *Metadata
 	return nil
 }
 
-// GetMetadataAuditoryByID evaluates GetMetadataAuditoryById and returns
-// the full history (audit trail) for the given asset ID.
-func GetMetadataAuditoryByID(contract *client.Contract, id string) ([]MetadataHistoryEntry, error) {
-	fmt.Printf("--> Evaluate Transaction: GetMetadataAuditoryByID | ID: %s\n", id)
-	result, err := contract.EvaluateTransaction("GetMetadataAuditoryById", id)
-	if err != nil {
-		return nil, fmt.Errorf("metadata.GetMetadataAuditoryByID: failed to evaluate transaction: %w", err)
-	}
-	var history []MetadataHistoryEntry
-	if err := json.Unmarshal(result, &history); err != nil {
-		return nil, fmt.Errorf("metadata.GetMetadataAuditoryByID: failed to unmarshal response: %w", err)
-	}
-	return history, nil
-}
+

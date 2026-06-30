@@ -29,6 +29,32 @@
                     "metadata"
                 ],
                 "summary": "List all metadata assets",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by patient ID",
+                        "name": "patient_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by asset ID",
+                        "name": "asset_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (created_at)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (created_at)",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -43,7 +69,8 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/metadata.MetadataModel"
+                                                "type": "object",
+                                                "additionalProperties": true
                                             }
                                         }
                                     }
@@ -294,7 +321,7 @@
         },
         "/metadata/{id}/auditory": {
             "get": {
-                "description": "Evaluates GetMetadataAuditoryById on the Fabric ledger and returns the full immutable history of the asset.",
+                "description": "Returns the full immutable history of the asset from the audit service.",
                 "produces": [
                     "application/json"
                 ],
@@ -325,7 +352,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/metadata.MetadataHistoryEntry"
+                                                "$ref": "#/definitions/audit.AuditModel"
                                             }
                                         }
                                     }
@@ -338,32 +365,61 @@
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
-                        }
                     }
                 }
             }
         }
     },
     "definitions": {
-        "metadata.MetadataHistoryEntry": {
+        "audit.AuditAction": {
+            "type": "string",
+            "enum": [
+                "CREATE",
+                "UPDATE",
+                "DELETE",
+                "LIST"
+            ],
+            "x-enum-varnames": [
+                "ActionCreate",
+                "ActionUpdate",
+                "ActionDelete",
+                "ActionList"
+            ]
+        },
+        "audit.AuditModel": {
             "type": "object",
             "properties": {
-                "is_delete": {
-                    "type": "boolean"
+                "action": {
+                    "description": "Action is the operation that was performed (CREATE, UPDATE, DELETE, LIST).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/audit.AuditAction"
+                        }
+                    ]
                 },
-                "timestamp": {
+                "actor": {
+                    "description": "Actor is the identity that triggered the operation (e.g. a username or\ncertificate CN). Defaults to \"system\" when no actor is available.",
                     "type": "string"
                 },
-                "tx_id": {
+                "details": {
+                    "description": "Details holds any additional context about the operation\n(e.g. the payload snapshot or a short description).",
                     "type": "string"
                 },
-                "value": {
-                    "$ref": "#/definitions/metadata.MetadataModel"
+                "entity": {
+                    "description": "Entity identifies the domain object being audited (e.g. \"Metadata\").",
+                    "type": "string"
+                },
+                "entity_id": {
+                    "description": "EntityID is the primary-key value of the affected record.\nEmpty string means the operation targeted the entire collection (e.g. LIST).",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "ID is an auto-incremented sequence number assigned at insertion time.",
+                    "type": "integer"
+                },
+                "occurred_at": {
+                    "description": "OccurredAt is the UTC timestamp of when the operation was recorded.",
+                    "type": "string"
                 }
             }
         },
@@ -371,16 +427,22 @@
             "type": "object",
             "properties": {
                 "asset_id": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "created_at": {
+                    "description": "Dates are stored as RFC3339 strings, matching the chaincode's on-chain representation.",
                     "type": "string"
                 },
                 "created_by": {
                     "type": "string"
                 },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "deleted_by": {
+                    "type": "string"
+                },
                 "id": {
-                    "description": "ID is auto-generated by the chaincode's internal counter (_metadata_id_counter).\nIt is read-only: never sent on create, always populated on read responses.",
                     "type": "integer"
                 },
                 "name": {
@@ -390,7 +452,7 @@
                     "type": "string"
                 },
                 "patient_id": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "rights": {
                     "type": "string"

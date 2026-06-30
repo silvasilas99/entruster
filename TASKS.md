@@ -16,9 +16,5 @@
 - Create a README.md to the project
 - Add ElasticSearch
 - Apply repository pattern
-- Apply observer
-
-As a developer specialized on search engines like elasticSearch, Golang and blockchain with Hyperledger Fabric, add
-  ElasticSearch to this projet and advanced filtering of metadata 
 
 Add what was learned and done in brain.md
