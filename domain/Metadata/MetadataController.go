@@ -20,14 +20,14 @@ import (
 //	@Failure		400			{object}	utils.ErrorResponse
 //	@Failure		500			{object}	utils.ErrorResponse
 //	@Router			/metadata/ [post]
-func CreateMetadataHandler(contract *client.Contract) gin.HandlerFunc {
+func CreateMetadataHandler(contract *client.Contract, observer *MetadataObserver) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req MetadataModel
 		if err := c.ShouldBindJSON(&req); err != nil {
 			utils.SendError(c, http.StatusBadRequest, "Invalid request body. Check the required fields and their types.")
 			return
 		}
-		if err := CreateMetadata(contract, req); err != nil {
+		if err := CreateMetadata(contract, req, observer); err != nil {
 			utils.SendError(c, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -47,9 +47,9 @@ func CreateMetadataHandler(contract *client.Contract) gin.HandlerFunc {
 //	@Success		200	{object}	utils.SuccessResponse{data=[]MetadataModel}
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/metadata/ [get]
-func GetAllMetadataHandler(contract *client.Contract) gin.HandlerFunc {
+func GetAllMetadataHandler(contract *client.Contract, observer *MetadataObserver) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		list, err := GetAllMetadata(contract)
+		list, err := GetAllMetadata(contract, observer)
 		if err != nil {
 			utils.SendError(c, http.StatusInternalServerError, err.Error())
 			return
@@ -92,13 +92,13 @@ func GetMetadataByIDHandler(contract *client.Contract) gin.HandlerFunc {
 //	@Tags			metadata
 //	@Accept			json
 //	@Produce		json
-//	@Param			id			path		string			true	"Asset ID (numeric string)"
+//	@Param			id		path		string			true	"Asset ID (numeric string)"
 //	@Param			metadata	body		MetadataModel	true	"Updated metadata fields"
-//	@Success		200			{object}	utils.SuccessResponse{data=map[string]string}
-//	@Failure		400			{object}	utils.ErrorResponse
-//	@Failure		500			{object}	utils.ErrorResponse
+//	@Success		200		{object}	utils.SuccessResponse{data=map[string]string}
+//	@Failure		400		{object}	utils.ErrorResponse
+//	@Failure		500		{object}	utils.ErrorResponse
 //	@Router			/metadata/{id} [put]
-func UpdateMetadataByIDHandler(contract *client.Contract) gin.HandlerFunc {
+func UpdateMetadataByIDHandler(contract *client.Contract, observer *MetadataObserver) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if id == "" {
@@ -110,7 +110,7 @@ func UpdateMetadataByIDHandler(contract *client.Contract) gin.HandlerFunc {
 			utils.SendError(c, http.StatusBadRequest, "Invalid request body. Check the required fields and their types.")
 			return
 		}
-		if err := UpdateMetadataByID(contract, id, req); err != nil {
+		if err := UpdateMetadataByID(contract, id, req, observer); err != nil {
 			utils.SendError(c, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -129,14 +129,14 @@ func UpdateMetadataByIDHandler(contract *client.Contract) gin.HandlerFunc {
 //	@Failure		400	{object}	utils.ErrorResponse
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/metadata/{id} [delete]
-func DeleteMetadataByIDHandler(contract *client.Contract) gin.HandlerFunc {
+func DeleteMetadataByIDHandler(contract *client.Contract, observer *MetadataObserver) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if id == "" {
 			utils.SendError(c, http.StatusBadRequest, "ID parameter is required")
 			return
 		}
-		if err := DeleteMetadataByID(contract, id); err != nil {
+		if err := DeleteMetadataByID(contract, id, observer); err != nil {
 			utils.SendError(c, http.StatusInternalServerError, err.Error())
 			return
 		}

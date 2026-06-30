@@ -4,8 +4,10 @@
 - ElasticSearch + Go
 
 # TODO:
+- Persist data of blockchain in some Docker volume
+- Use timestaps on data fields
+- Create chaincodes to register Audit Events
 - Create a command to seed data
-
 - Transform ./fabric/ChaincodeSDK.go into ./service/ChaincodeService.go
 - Create .env and use it on ./config/config.go
 - Improve semantic of vars and functions
@@ -17,8 +19,6 @@
 - Apply observer
 
 As a developer specialized on search engines like elasticSearch, Golang and blockchain with Hyperledger Fabric, add
-  ElasticSearch to this projet, create the indexes on while make a transaction to create metadata; heat when the
-  metadata is updated, and list the metadata with the data in elasticsearch in the searchs of GetAllMetadataHandler
-  of domain/metadata/MetadataController
+  ElasticSearch to this projet and advanced filtering of metadata 
 
 Add what was learned and done in brain.md

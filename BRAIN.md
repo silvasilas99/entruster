@@ -374,3 +374,65 @@ When testing the newly dockerized API container, calling the POST `/api/metadata
    - This completely solved the TLS caching and chaincode discovery issues by ensuring the Go API only loads certificates and queries discovery after the chaincode is confirmed ready.
 3. **Nuclear Reset & Git Restore**: Recovered the accidentally deleted `registerEnroll.sh` using `git restore test-network/organizations/`. Performed a full cleanup using `network.sh down` and removed stale `organizations/` directories to force a pristine regeneration of all crypto materials.
 4. **Gateway Cache Clear**: With the `entrypoint.sh` wait-loop in place, the `api` container naturally starts with a clean Gateway cache holding the newly committed chaincode metadata, allowing successful transactions.
+
+---
+
+## Auditing Layer: AuditModel, AuditService, and MetadataObserver
+
+### Context
+The application needed an auditing mechanism to record every state-changing and listing operation performed on Metadata assets (CREATE, UPDATE, DELETE, LIST). The requirement was:
+- Emit an audit entry every time a Metadata operation succeeds.
+- Keep the audit logic decoupled from both the Fabric transport layer and the HTTP handlers.
+- Use the **Observer pattern** so that `MetadataModel` lifecycle events drive `AuditService` calls without creating circular dependencies.
+
+### Architecture
+
+```
+HTTP Request
+    ↓
+MetadataController  (gin handler)
+    ↓
+MetadataContracts   (Fabric ledger call)
+    ↓  (on success only)
+MetadataObserver.OnCreate / OnUpdate / OnDelete / OnList
+    ↓
+AuditService.Record(entity, entityID, action, actor, details)
+    ↓
+AuditModel stored in-memory + printed to stdout
+```
+
+### Files Created / Modified
+
+| File | Role |
+|---|---|
+| `audit/AuditModel.go` | `AuditAction` enum (`CREATE`, `UPDATE`, `DELETE`, `LIST`) + `AuditModel` struct |
+| `audit/AuditService.go` | Thread-safe in-memory store; `Record`, `GetAll`, `GetByEntity`, `GetByEntityID` |
+| `domain/metadata/MetadataObserver.go` | Observer with typed hooks: `OnCreate`, `OnUpdate`, `OnDelete`, `OnList` |
+| `domain/metadata/MetadataContracts.go` | Each mutating function now accepts `*MetadataObserver` and fires the hook after a successful ledger commit |
+| `domain/metadata/MetadataController.go` | Handler constructors accept and forward `*MetadataObserver` |
+| `routes/api_routes.go` | Bootstraps `AuditService → MetadataObserver` once at startup and injects into handlers |
+
+### Audited Operations
+
+| HTTP Operation | Observer Hook | Audit Action |
+|---|---|---|
+| `POST /api/metadata/` | `OnCreate(req)` | `CREATE` |
+| `GET /api/metadata/` | `OnList(count)` | `LIST` |
+| `PUT /api/metadata/:id` | `OnUpdate(id, req)` | `UPDATE` |
+| `DELETE /api/metadata/:id` | `OnDelete(id)` | `DELETE` |
+| `GET /api/metadata/:id` | *(not audited — read-only)* | — |
+| `GET /api/metadata/:id/auditory` | *(not audited — read-only)* | — |
+
+### Design Decisions
+
+1. **Observer over direct coupling**: The observer is injected via the constructor (`NewMetadataObserver(svc)`), keeping `MetadataContracts` free of any direct audit dependency. Passing `nil` disables auditing silently, useful for tests.
+2. **Hook fires only on success**: The observer methods are called *after* the Fabric transaction commits without error, so no phantom audit entries are created for failed operations.
+3. **In-memory store**: `AuditService` currently uses a `sync.RWMutex`-protected slice. To persist audits across restarts, replace the slice/mutex with a database repository while keeping the same `Record`/`GetAll` public interface.
+4. **Actor fallback**: If `actor` is blank when `Record` is called, it defaults to `"system"` to keep every audit row attributable.
+5. **Single bootstrap point**: `AuditService` and `MetadataObserver` are instantiated once in `routes/api_routes.go` and shared across all handlers, ensuring a single consistent audit trail for the lifetime of the server.
+
+### Key Rule Going Forward
+Any new domain entity that requires auditing should follow the same pattern:
+1. Create `<Entity>Observer.go` with typed hooks in the domain package.
+2. Add `*<Entity>Observer` parameters to the contract functions that change state.
+3. Wire `AuditService → <Entity>Observer` in `routes/api_routes.go`.

@@ -31,6 +31,7 @@ type MetadataAsset struct {
 	TermsOfAccess string `json:"terms_of_access"`
 	CreatedAt     string `json:"created_at"`
 	UpdatedAt     string `json:"updated_at"`
+	DeletedAt     string `json:"deleted_at,omitempty"`
 	CreatedBy     string `json:"created_by"`
 	UpdatedBy     string `json:"updated_by"`
 }
@@ -169,7 +170,7 @@ func (c *MetadataContract) RegisterMetadataOnNetwork(
 	return putAsset(ctx, asset)
 }
 
-// GetAllMetadataFromNetwork returns every metadata asset on the ledger as a JSON array.
+// GetAllMetadataFromNetwork returns every active (non-deleted) metadata asset on the ledger as a JSON array.
 func (c *MetadataContract) GetAllMetadataFromNetwork(ctx contractapi.TransactionContextInterface) ([]MetadataAsset, error) {
 	iter, err := ctx.GetStub().GetStateByRange("metadata_", "metadata_~")
 	if err != nil {
@@ -186,6 +187,10 @@ func (c *MetadataContract) GetAllMetadataFromNetwork(ctx contractapi.Transaction
 		var asset MetadataAsset
 		if err := json.Unmarshal(kv.Value, &asset); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal asset: %w", err)
+		}
+		// Skip soft-deleted records.
+		if asset.DeletedAt != "" {
+			continue
 		}
 		results = append(results, asset)
 	}
@@ -244,20 +249,30 @@ func (c *MetadataContract) UpdateMetadataById(
 	return putAsset(ctx, *asset)
 }
 
-// DeleteMetadataById removes the metadata asset with the given ID from the ledger.
+// DeleteMetadataById performs a soft delete by recording the deletedAt timestamp on the asset.
+// The asset remains on the ledger and its full history is preserved in the audit trail.
+// Arguments: id (numeric string), deletedAt (RFC3339 timestamp string).
 func (c *MetadataContract) DeleteMetadataById(
 	ctx contractapi.TransactionContextInterface,
 	idStr string,
+	deletedAt string,
 ) error {
 	id, err := mustParseUint64(idStr, "id")
 	if err != nil {
 		return err
 	}
-	// Verify it exists first so we return a meaningful error.
-	if _, err := getAsset(ctx, id); err != nil {
+	asset, err := getAsset(ctx, id)
+	if err != nil {
 		return err
 	}
-	return ctx.GetStub().DelState(assetKey(id))
+	if asset.DeletedAt != "" {
+		return fmt.Errorf("asset %d has already been deleted at %s", id, asset.DeletedAt)
+	}
+	if deletedAt == "" {
+		deletedAt = time.Now().UTC().Format(time.RFC3339)
+	}
+	asset.DeletedAt = deletedAt
+	return putAsset(ctx, *asset)
 }
 
 // GetMetadataAuditoryById returns the full history (audit trail) for the given asset ID.
