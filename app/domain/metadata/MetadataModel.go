@@ -6,6 +6,7 @@ type MetadataModel struct {
 	ID            	uint64 `json:"id,omitempty"`
 	PatientID     	uint64 `json:"patient_id"`
 	AssetID       	uint64 `json:"asset_id"`
+	ZKPProof      	string `json:"zkp_proof"`
 	Name          	string `json:"name"`
 	Value         	string `json:"value"`
 	Version       	string `json:"version"`

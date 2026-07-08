@@ -1,3 +1,5 @@
 fabric-samples
 chaincode/vendor
 server
+entruster-api
+go.sum

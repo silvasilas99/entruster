@@ -35,5 +35,8 @@ func SetupRoutes(contract *client.Contract) *gin.Engine {
 		metadataRoutes.GET("/:id/auditory", metadata.GetMetadataAuditoryByIDHandler(auditSvc))
 	}
 
+	// Health check routes
+	r.GET("/api/health/elasticsearch", metadata.GetHealthHandler(elasticSvc))
+
 	return r
 }

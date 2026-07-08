@@ -26,7 +26,7 @@ func NewMetadataService(contract *client.Contract, observer *MetadataObserver) *
 func (m *MetadataService) RegisterMetadata(metadataDTO MetadataDTO) error {
 	fmt.Printf("[MetadataService][RegisterMetadata]: Storing metadata on blockchain: %+v\n", metadataDTO)
 
-	if metadataDTO.CreatedAt == "" {
+	if _, err := time.Parse(time.RFC3339, metadataDTO.CreatedAt); err != nil {
 		metadataDTO.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	}
 
@@ -44,8 +44,7 @@ func (m *MetadataService) RegisterMetadata(metadataDTO MetadataDTO) error {
 	fmt.Printf("*** Transaction committed successfully. Generated ID: %s\n", id)
 
 	if m.metadataObserver != nil {
-		// Just a placeholder call, actual method depends on observer implementation
-		// m.metadataObserver.OnCreate(id, metadataDTO)
+		m.metadataObserver.OnCreate(id, ToModel(metadataDTO))
 	}
 
 	return nil
@@ -84,13 +83,14 @@ func (m *MetadataService) GetMetadataByID(id string) (*MetadataModel, error) {
 func (m *MetadataService) UpdateMetadataByID(id string, req MetadataModel) error {
 	fmt.Printf("--> Submit Transaction: UpdateMetadataByID | ID: %s\n", id)
 
-	if req.UpdatedAt == "" {
+	if _, err := time.Parse(time.RFC3339, req.UpdatedAt); err != nil {
 		req.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	}
 
 	_, err := m.chaincodeQuery.UpdateOnChain(
 		"UpdateMetadataById",
 		id,
+		req.ZKPProof,
 		req.Name,
 		req.Value,
 		req.Version,
@@ -105,6 +105,10 @@ func (m *MetadataService) UpdateMetadataByID(id string, req MetadataModel) error
 	}
 	fmt.Println("*** Transaction committed successfully")
 
+	if m.metadataObserver != nil {
+		m.metadataObserver.OnUpdate(id, req)
+	}
+
 	return nil
 }
 
@@ -116,6 +120,10 @@ func (m *MetadataService) DeleteMetadataByID(id string) error {
 		return fmt.Errorf("metadata.DeleteMetadataByID: failed to submit transaction: %w", err)
 	}
 	fmt.Println("*** Transaction committed successfully")
+
+	if m.metadataObserver != nil {
+		m.metadataObserver.OnDelete(id)
+	}
 
 	return nil
 }

@@ -2,6 +2,8 @@ package metadata
 
 import (
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hyperledger/fabric-gateway/pkg/client"
@@ -17,65 +19,48 @@ import (
 //	@Produce		json
 //	@Param			patient_id	query		string	false	"Filter by patient ID"
 //	@Param			asset_id	query		string	false	"Filter by asset ID"
-//	@Param			from		query		string	false	"Start date (created_at)"
-//	@Param			to			query		string	false	"End date (created_at)"
+//	@Param			q			query		string	false	"Full-text search query"
+//	@Param			from		query		string	false	"Start date (created_at, RFC3339)"
+//	@Param			to			query		string	false	"End date (created_at, RFC3339)"
+//	@Param			limit		query		int		false	"Max results (default 20, max 100)"
+//	@Param			offset		query		int		false	"Offset for pagination"
 //	@Success		200	{object}	utils.SuccessResponse{data=[]map[string]interface{}}
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/metadata/ [get]
 func GetAll(contract *client.Contract, observer *MetadataObserver, elasticSvc *elasticsearch.ElasticService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		patientID := c.Query("patient_id")
-		assetID := c.Query("asset_id")
-		from := c.Query("from")
-		to := c.Query("to")
-
-		var mustClauses []map[string]interface{}
-
-		if patientID != "" {
-			mustClauses = append(mustClauses, map[string]interface{}{
-				"match": map[string]interface{}{"patient_id": patientID},
-			})
-		}
-		if assetID != "" {
-			mustClauses = append(mustClauses, map[string]interface{}{
-				"match": map[string]interface{}{"asset_id": assetID},
-			})
+		filter := &elasticsearch.MetadataFilter{
+			PatientID:      c.Query("patient_id"),
+			AssetID:        c.Query("asset_id"),
+			Query:          c.Query("q"),
+			ExcludeDeleted: true, // Always exclude soft-deleted records
 		}
 
-		if from != "" || to != "" {
-			rangeQuery := map[string]interface{}{}
-			if from != "" {
-				rangeQuery["gte"] = from
+		// Parse date range
+		if from := c.Query("from"); from != "" {
+			if t, err := time.Parse(time.RFC3339, from); err == nil {
+				filter.CreatedFrom = &t
 			}
-			if to != "" {
-				rangeQuery["lte"] = to
+		}
+		if to := c.Query("to"); to != "" {
+			if t, err := time.Parse(time.RFC3339, to); err == nil {
+				filter.CreatedTo = &t
 			}
-			mustClauses = append(mustClauses, map[string]interface{}{
-				"range": map[string]interface{}{
-					"created_at": rangeQuery,
-				},
-			})
 		}
 
-		// Filter out soft-deleted records in ES
-		mustNotClauses := []map[string]interface{}{
-			{
-				"exists": map[string]interface{}{
-					"field": "deleted_at",
-				},
-			},
+		// Parse pagination
+		if limit := c.Query("limit"); limit != "" {
+			if v, err := strconv.Atoi(limit); err == nil {
+				filter.Limit = v
+			}
+		}
+		if offset := c.Query("offset"); offset != "" {
+			if v, err := strconv.Atoi(offset); err == nil {
+				filter.Offset = v
+			}
 		}
 
-		query := map[string]interface{}{
-			"query": map[string]interface{}{
-				"bool": map[string]interface{}{
-					"must":     mustClauses,
-					"must_not": mustNotClauses,
-				},
-			},
-		}
-
-		results, err := elasticSvc.SearchDocuments(c.Request.Context(), "metadata", query)
+		results, total, err := elasticSvc.Search(c.Request.Context(), esIndexName, filter)
 		if err != nil {
 			utils.SendError(c, http.StatusInternalServerError, "Failed to fetch metadata from search engine: "+err.Error())
 			return
@@ -85,7 +70,10 @@ func GetAll(contract *client.Contract, observer *MetadataObserver, elasticSvc *e
 			observer.OnList(len(results))
 		}
 
-		utils.SendSuccess(c, "Metadata list retrieved successfully", results)
+		utils.SendSuccess(c, "Metadata list retrieved successfully", gin.H{
+			"items": results,
+			"total": total,
+		})
 	}
 }
 
@@ -136,5 +124,24 @@ func GetMetadataAuditoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFun
 		}
 		history := auditSvc.GetByEntityID("Metadata", id)
 		utils.SendSuccess(c, "Metadata audit trail retrieved successfully", history)
+	}
+}
+
+// GetHealthHandler handles GET /api/health/elasticsearch
+//
+//	@Summary		Get Elasticsearch cluster health
+//	@Tags			health
+//	@Produce		json
+//	@Success		200	{object}	utils.SuccessResponse{data=map[string]interface{}}
+//	@Failure		500	{object}	utils.ErrorResponse
+//	@Router			/health/elasticsearch [get]
+func GetHealthHandler(elasticSvc *elasticsearch.ElasticService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		health, err := elasticSvc.GetHealth(c.Request.Context())
+		if err != nil {
+			utils.SendError(c, http.StatusInternalServerError, "Failed to get Elasticsearch health: "+err.Error())
+			return
+		}
+		utils.SendSuccess(c, "Elasticsearch health retrieved", health)
 	}
 }

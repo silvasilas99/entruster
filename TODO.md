@@ -76,6 +76,8 @@ o qual deve conter a lógica para realizar todas as operações de interação c
 do comando de seeding, e descritos no arquivo ./BENCHMARK.md que deve ser criado
 ## 9: Criar testes de unidade para principais métodos (que façam sentido ser testados estaticamente)
 ## 10: Criar testes de integração para operações com ES e com o HF;
+## 11: Obtenha todo o contexto da aplicação, escreva um ./BRAIN.md com tudo que foi aprendido na coleta, na conversa atual e em conversas anteriores deste projeto, explicando cada detalhe da aplicação, infraestrutura, estrutura de arquivos, fluxos e estrutura de dados, serviços, etc. Explique as camadas da arquitetura profundamente. Adicione uma sessão explicitando como montar o ambiente da aplicação localmente do zero até a primeira requisição a API.
+Após isso, aja como um doutor (PHD) em computação aplicada, e com todo o contexto obtido, crie um artigo propositivo no padrão SBC para o projeto, e armazene em DOCS.md.
 
 
 # DICA

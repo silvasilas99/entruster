@@ -8,6 +8,7 @@ type MetadataDTO struct {
 	chaincode.TransferableDTO
 	PatientID     uint64 `json:"patient_id"`
 	AssetID       uint64 `json:"asset_id"`
+	ZKPProof      string `json:"zkp_proof"`
 	Name          string `json:"name"`
 	Value         string `json:"value"`
 	Version       string `json:"version"`
@@ -20,6 +21,7 @@ func NewMetadataDTO(
 	id uint64,
 	patientID uint64,
 	assetID uint64,
+	zkpProof string,
 	name string,
 	value string,
 	version string,
@@ -45,6 +47,7 @@ func NewMetadataDTO(
 		},
 		PatientID:     patientID,
 		AssetID:       assetID,
+		ZKPProof:      zkpProof,
 		Name:          name,
 		Value:         value,
 		Version:       version,
@@ -59,6 +62,7 @@ func ToModel(dto MetadataDTO) MetadataModel{
 		ID: dto.TransferableDTO.ID,
 		PatientID:     dto.PatientID,
 		AssetID:       dto.AssetID,
+		ZKPProof:      dto.ZKPProof,
 		Name:          dto.Name,
 		Value:         dto.Value,
 		Version:       dto.Version,
