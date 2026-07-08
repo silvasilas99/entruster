@@ -1,39 +1,37 @@
+version: '3.8'
+
 services:
   setup:
-    build:
-      context: .
-      dockerfile: Dockerfile.setup
+    image: docker:24-cli
+    container_name: fabric-setup
     volumes:
-      - ${PWD}:${PWD}
       - ${PWD}:${PWD}
       - /var/run/docker.sock:/var/run/docker.sock
     working_dir: ${PWD}
     environment:
-      - PROJECT_DIR=${PWD}
+      - GOFLAGS=-buildvcs=false
+    entrypoint: /bin/sh
+    command: -c "apk add --no-cache bash curl jq gcompat libc6-compat go && ./scripts/network-setup.sh && touch .fabric_ready"
     network_mode: "host"
-    restart: "no"
 
   api:
     container_name: entruster-api
     build:
       context: .
-      dockerfile: Dockerfile.api
-    ports:
-      - "8080:8080"
+      dockerfile: docker/Dockerfile
     environment:
       - TEST_NETWORK_PATH=/app/fabric-samples/test-network
-      - PEER_ENDPOINT=dns:///peer0.org1.example.com:7051
+      - PEER_ENDPOINT=dns:///localhost:7051
       - PORT=8080
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_URL=http://localhost:9200
     volumes:
       - ./fabric-samples:/app/fabric-samples
       - .:/app/shared          # exposes project root so .fabric_ready sentinel is visible
-    networks:
-      - default
-      - fabric_test
+    network_mode: "host"
     restart: on-failure
     depends_on:
-      - setup
+      elasticsearch:
+        condition: service_healthy
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
@@ -44,15 +42,14 @@ services:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
-    networks:
-      - default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
     volumes:
       - esdata:/usr/share/elasticsearch/data
-
-networks:
-  fabric_test:
-    external: true
 
 volumes:
   esdata:

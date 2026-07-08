@@ -15,7 +15,9 @@ type MetadataContract struct {
 }
 
 // counterKey is the ledger key used to persist the auto-increment ID counter.
-const counterKey = "_metadata_id_counter"
+// NOTE: Hyperledger Fabric reserves keys that begin with "_" for internal use.
+// Using such a key causes: "invalid key [...], cannot begin with \"_\""
+const counterKey = "metadata.id.counter"
 
 // MetadataAsset is the on-chain representation of a metadata record.
 type MetadataAsset struct {

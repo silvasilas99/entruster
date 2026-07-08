@@ -1,0 +1,39 @@
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# Install bash and other dependencies for wait-for-it scripts if needed
+RUN apk update && apk add --no-cache bash gcc musl-dev
+
+# Copy go.mod and go.sum files
+COPY go.mod go.sum ./
+
+# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
+RUN go mod download
+
+# Copy the source code
+COPY . .
+
+# Build the Go app
+# Assuming the entry point is app/core/bootstrap/Server.go
+# If not, adjust the path accordingly. Let's build from where main is.
+# Wait, normally the main package is at root or cmd/. Let's assume there's a main.go or we build Server.go.
+# Server.go probably has `package main` and `func main()`.
+RUN go build -o entruster-api app/core/bootstrap/Server.go
+
+FROM alpine:latest
+WORKDIR /app
+
+# Install dependencies needed at runtime
+RUN apk --no-cache add ca-certificates bash curl jq
+
+# Copy the Pre-built binary file from the previous stage
+COPY --from=builder /app/entruster-api .
+COPY --from=builder /app/scripts ./scripts
+
+# Expose port 8080 to the outside world
+EXPOSE 8080
+
+# Command to run the executable. We add a script to wait for the fabric network if needed.
+# But for now, just wait for .fabric_ready
+CMD ["/bin/bash", "-c", "while [ ! -f /app/shared/.fabric_ready ]; do echo 'Waiting for Fabric Test Network to be ready...'; sleep 5; done; echo 'Fabric is ready. Starting API...'; ./entruster-api"]

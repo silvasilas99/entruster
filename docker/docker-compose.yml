@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  setup:
+    image: docker:24-cli
+    container_name: fabric-setup
+    volumes:
+      - ../:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    entrypoint: /bin/sh
+    command: -c "apk add --no-cache bash curl jq && ./scripts/network-setup.sh && touch .fabric_ready"
+    network_mode: "host"
+
+  api:
+    container_name: entruster-api
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - TEST_NETWORK_PATH=/app/fabric-samples/test-network
+      - PEER_ENDPOINT=dns:///peer0.org1.example.com:7051
+      - PORT=8080
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    volumes:
+      - ../fabric-samples:/app/fabric-samples
+      - ../:/app/shared          # exposes project root so .fabric_ready sentinel is visible
+    networks:
+      - default
+      - fabric_test
+    restart: on-failure
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+
+networks:
+  fabric_test:
+    external: true
+    name: fabric_test
+
+volumes:
+  esdata:

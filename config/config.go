@@ -30,6 +30,12 @@ var (
     TLSCertPath = path.Join(TestNetworkPath,
         "organizations/peerOrganizations/org1.example.com",
         "peers/peer0.org1.example.com/tls/ca.crt")
+    // OrdererTLSCertPath is the TLS CA certificate of the orderer organization.
+    // It must be added to the gRPC TLS cert pool so the fabric-gateway can
+    // verify the orderer's certificate when submitting transactions.
+    OrdererTLSCertPath = path.Join(TestNetworkPath,
+        "organizations/ordererOrganizations/example.com",
+        "orderers/orderer.example.com/tls/ca.crt")
     CertPath = path.Join(TestNetworkPath,
         "organizations/peerOrganizations/org1.example.com",
         "users/Admin@org1.example.com/msp/signcerts")
