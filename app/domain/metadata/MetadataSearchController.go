@@ -1,6 +1,7 @@
 package metadata
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/hyperledger/fabric-gateway/pkg/client"
 	"github.com/silvasilas99/entruster/app/core/audit"
 	"github.com/silvasilas99/entruster/app/core/elasticsearch"
+	"github.com/silvasilas99/entruster/app/core/middleware"
 	"github.com/silvasilas99/entruster/utils"
 )
 
@@ -67,7 +69,13 @@ func GetAll(contract *client.Contract, observer *MetadataObserver, elasticSvc *e
 		}
 
 		if observer != nil {
-			observer.OnList(len(results))
+			actor := "system"
+			if user, exists := c.Get("currentUser"); exists {
+				if userInfo, ok := user.(*middleware.UserInfo); ok {
+					actor = userInfo.Name
+				}
+			}
+			observer.OnList(len(results), actor)
 		}
 
 		utils.SendSuccess(c, "Metadata list retrieved successfully", gin.H{
@@ -124,6 +132,36 @@ func GetMetadataAuditoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFun
 		}
 		history := auditSvc.GetByEntityID("Metadata", id)
 		utils.SendSuccess(c, "Metadata audit trail retrieved successfully", history)
+	}
+}
+
+// GetMetadataNativeHistoryByIDHandler handles GET /api/metadata/:id/history
+//
+//	@Summary		Get native transaction history for a metadata asset
+//	@Description	Returns the immutable transaction history of the asset directly from the Hyperledger ledger.
+//	@Tags			metadata
+//	@Produce		json
+//	@Param			id	path		string	true	"Asset ID (numeric string)"
+//	@Success		200	{object}	utils.SuccessResponse{data=[]audit.HistoryRecord}
+//	@Failure		400	{object}	utils.ErrorResponse
+//	@Router			/metadata/{id}/history [get]
+func GetMetadataNativeHistoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.Param("id")
+		if id == "" {
+			utils.SendError(c, http.StatusBadRequest, "ID parameter is required")
+			return
+		}
+		history, err := auditSvc.GetNativeHistory(id)
+		if err != nil {
+			utils.SendError(c, http.StatusInternalServerError, "Failed to retrieve native history: " + err.Error())
+			return
+		}
+
+		var parsedHistory []map[string]interface{}
+		json.Unmarshal(history, &parsedHistory)
+
+		utils.SendSuccess(c, "Metadata native ledger history retrieved successfully", parsedHistory)
 	}
 }
 

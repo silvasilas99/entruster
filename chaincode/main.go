@@ -38,6 +38,14 @@ type MetadataAsset struct {
 	UpdatedBy     string `json:"updated_by"`
 }
 
+// HistoryRecord represents a historical state of a MetadataAsset.
+type HistoryRecord struct {
+	TxId      string         `json:"tx_id"`
+	Timestamp string         `json:"timestamp"`
+	IsDelete  bool           `json:"is_delete"`
+	Asset     *MetadataAsset `json:"asset,omitempty"`
+}
+
 // ────────────────────────────────────────────────────────────
 //  Initialisation
 // ────────────────────────────────────────────────────────────
@@ -267,6 +275,51 @@ func (c *MetadataContract) DeleteMetadataById(
 	}
 	asset.DeletedAt = deletedAt
 	return putAsset(ctx, *asset)
+}
+
+// GetMetadataHistoryById returns the native transaction history for a given asset ID.
+func (c *MetadataContract) GetMetadataHistoryById(
+	ctx contractapi.TransactionContextInterface,
+	idStr string,
+) ([]HistoryRecord, error) {
+	id, err := mustParseUint64(idStr, "id")
+	if err != nil {
+		return nil, err
+	}
+
+	resultsIterator, err := ctx.GetStub().GetHistoryForKey(assetKey(id))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get history for asset %d: %w", id, err)
+	}
+	defer resultsIterator.Close()
+
+	var records []HistoryRecord
+	for resultsIterator.HasNext() {
+		response, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		var asset *MetadataAsset
+		if len(response.Value) > 0 {
+			var a MetadataAsset
+			if err := json.Unmarshal(response.Value, &a); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal historical asset state: %w", err)
+			}
+			asset = &a
+		}
+
+		timestamp := time.Unix(response.Timestamp.Seconds, int64(response.Timestamp.Nanos)).UTC().Format(time.RFC3339)
+
+		records = append(records, HistoryRecord{
+			TxId:      response.TxId,
+			Timestamp: timestamp,
+			IsDelete:  response.IsDelete,
+			Asset:     asset,
+		})
+	}
+
+	return records, nil
 }
 
 

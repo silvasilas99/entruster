@@ -58,8 +58,8 @@ func (o *MetadataObserver) OnUpdate(id string, req MetadataModel) {
 }
 
 // OnDelete is fired after a Metadata record is successfully deleted.
-func (o *MetadataObserver) OnDelete(id string) {
-	o.auditService.Record(entityName, id, audit.ActionDelete, "system", "soft-delete committed to ledger")
+func (o *MetadataObserver) OnDelete(id string, deletedBy string) {
+	o.auditService.Record(entityName, id, audit.ActionDelete, deletedBy, "soft-delete committed to ledger")
 
 	deletedAt := time.Now().UTC().Format(time.RFC3339)
 	err := o.elasticSvc.UpdateDocument(context.Background(), esIndexName, id, map[string]interface{}{
@@ -71,7 +71,7 @@ func (o *MetadataObserver) OnDelete(id string) {
 }
 
 // OnList is fired after a successful listing of all Metadata records.
-func (o *MetadataObserver) OnList(count int) {
+func (o *MetadataObserver) OnList(count int, actor string) {
 	details := fmt.Sprintf("returned %d record(s)", count)
-	o.auditService.Record(entityName, "", audit.ActionList, "system", details)
+	o.auditService.Record(entityName, "", audit.ActionList, actor, details)
 }

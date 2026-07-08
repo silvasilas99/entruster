@@ -62,7 +62,7 @@ func (m *MetadataService) GetAllMetadata(filters []string) ([]MetadataModel, err
 	}
 
 	if m.metadataObserver != nil {
-		// m.metadataObserver.OnList(len(list))
+		// m.metadataObserver.OnList(len(list), "system")
 	}
 	return list, nil
 }
@@ -112,8 +112,8 @@ func (m *MetadataService) UpdateMetadataByID(id string, req MetadataModel) error
 	return nil
 }
 
-func (m *MetadataService) DeleteMetadataByID(id string) error {
-	fmt.Printf("--> Submit Transaction: DeleteMetadataByID | ID: %s\n", id)
+func (m *MetadataService) DeleteMetadataByID(id string, deletedBy string) error {
+	fmt.Printf("--> Submit Transaction: DeleteMetadataByID | ID: %s | DeletedBy: %s\n", id, deletedBy)
 	deletedAt := time.Now().UTC().Format(time.RFC3339)
 	_, err := m.chaincodeQuery.DeleteOnChain("DeleteMetadataById", id, deletedAt)
 	if err != nil {
@@ -122,7 +122,7 @@ func (m *MetadataService) DeleteMetadataByID(id string) error {
 	fmt.Println("*** Transaction committed successfully")
 
 	if m.metadataObserver != nil {
-		m.metadataObserver.OnDelete(id)
+		m.metadataObserver.OnDelete(id, deletedBy)
 	}
 
 	return nil

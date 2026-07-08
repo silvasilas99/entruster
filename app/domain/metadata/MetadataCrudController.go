@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/hyperledger/fabric-gateway/pkg/client"
+	"github.com/silvasilas99/entruster/app/core/middleware"
 	"github.com/silvasilas99/entruster/utils"
 )
 
@@ -33,6 +34,13 @@ func (c *MetadataCrudController) Store() gin.HandlerFunc {
 			return
 		}
 
+		// Set dynamic CreatedBy from authenticated user info
+		if user, exists := ctx.Get("currentUser"); exists {
+			if userInfo, ok := user.(*middleware.UserInfo); ok {
+				metadataDTO.CreatedBy = userInfo.Name
+			}
+		}
+
 		if err := c.metadataService.RegisterMetadata(metadataDTO); err != nil {
 			utils.SendError(ctx, http.StatusInternalServerError, err.Error())
 			return
@@ -58,6 +66,14 @@ func (c *MetadataCrudController) UpdateMetadataByIDHandler() gin.HandlerFunc {
 			utils.SendError(ctx, http.StatusBadRequest, "Invalid request body. Check the required fields and their types.")
 			return
 		}
+
+		// Set dynamic UpdatedBy from authenticated user info
+		if user, exists := ctx.Get("currentUser"); exists {
+			if userInfo, ok := user.(*middleware.UserInfo); ok {
+				req.UpdatedBy = userInfo.Name
+			}
+		}
+
 		if err := c.metadataService.UpdateMetadataByID(id, req); err != nil {
 			utils.SendError(ctx, http.StatusInternalServerError, err.Error())
 			return
@@ -73,7 +89,14 @@ func (c *MetadataCrudController) DeleteByID() gin.HandlerFunc {
 			utils.SendError(ctx, http.StatusBadRequest, "ID parameter is required")
 			return
 		}
-		if err := c.metadataService.DeleteMetadataByID(id); err != nil {
+		deletedBy := "system"
+		if user, exists := ctx.Get("currentUser"); exists {
+			if userInfo, ok := user.(*middleware.UserInfo); ok {
+				deletedBy = userInfo.Name
+			}
+		}
+
+		if err := c.metadataService.DeleteMetadataByID(id, deletedBy); err != nil {
 			utils.SendError(ctx, http.StatusInternalServerError, err.Error())
 			return
 		}

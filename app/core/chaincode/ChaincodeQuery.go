@@ -119,3 +119,13 @@ func (c *ChaincodeQuery) GetMetadataById(
 	}
 	return result, nil
 }
+
+func (c *ChaincodeQuery) GetMetadataHistoryById(
+	id string,
+) ([]byte, error) {
+	result, err := c.Contract.EvaluateTransaction("GetMetadataHistoryById", id)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}

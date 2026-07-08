@@ -21,9 +21,14 @@ const (
 )
 
 var (
-    PeerEndpoint = getEnvOrDefault("PEER_ENDPOINT", "dns:///localhost:7051")
-    Port         = getEnvOrDefault("PORT", "8080")
-    TestNetworkPath = os.Getenv("TEST_NETWORK_PATH")
+	PeerEndpoint    = getEnvOrDefault("PEER_ENDPOINT", "dns:///localhost:7051")
+	Port            = getEnvOrDefault("PORT", "8080")
+	TestNetworkPath = os.Getenv("TEST_NETWORK_PATH")
+
+	// JWT and User Mock API settings
+	StaticToken    = getEnvOrDefault("STATIC_TOKEN", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfNzc3IiwibmFtZSI6IkRyLiBTaWxhcyBTaWx2YSIsInJvbGUiOiJDaGllZiBDbGluaWNpYW4iLCJpYXQiOjE3ODIyOTc2MDB9.4M2R0_2nN0X4Y0tX6W7N8wYwS8uV2Fz3T9k_Y3Z1U_w") // Token estático pré-assinado
+	JWTSecret      = getEnvOrDefault("JWT_SECRET", "super-secret-key-change-it-in-production")
+	UserMockApiUrl = getEnvOrDefault("USER_MOCK_API_URL", "http://localhost:8080/api/mock/user")
 )
 
 var (

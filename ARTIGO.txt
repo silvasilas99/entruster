@@ -1,0 +1,318 @@
+========================================================================
+ARTIGO PROPOSITIVO NO PADRÃO SBC (SOCIEDADE BRASILEIRA DE COMPUTAÇÃO)
+========================================================================
+
+Título:
+Entruster: Uma Arquitetura de Registro e Auditoria Célere de Metadados de 
+Saúde HL7 FHIR Baseada em Hyperledger Fabric e Réplicas Indexadas em Elasticsearch
+
+Title:
+Entruster: A Fast Healthcare Metadata Registration and Audit Architecture 
+Based on Hyperledger Fabric and Elasticsearch Indexed Replicas
+
+Autor:
+Silas Silva
+Programa de Pós-Graduação em Computação Aplicada
+Universidade do Estado (Interoperabilidade e Blockchain - Interopchain)
+silas.silva@hospital.com / github.com/silvasilas99/entruster
+
+------------------------------------------------------------------------
+RESUMO
+------------------------------------------------------------------------
+A interoperabilidade de dados de saúde no padrão HL7 FHIR é essencial para a 
+continuidade assistencial, contudo, impõe desafios críticos de segurança, 
+integridade e rastreabilidade de acessos. A tecnologia de blockchain 
+descentralizada, particularmente o Hyperledger Fabric, surge como solução para o 
+registro imutável de trilhas de auditoria e metadados. Entretanto, a latência de 
+leitura inerente aos mecanismos de consenso e à estrutura de chaves das 
+blockchains limita o desempenho de buscas complexas e em larga escala necessárias 
+na prática clínica. Este artigo propõe a arquitetura "Entruster", uma solução 
+híbrida para registro de metadados FHIR na blockchain Hyperledger Fabric que 
+utiliza o padrão de projeto Observer para alimentar réplicas de leitura otimizadas 
+no Elasticsearch. A arquitetura viabiliza auditoria imediata de leitura e escrita, 
+além de consultas textuais céleres, sem comprometer a garantia de integridade 
+provida pelo histórico nativo do ledger. Avaliações experimentais demonstram que 
+a submissão concorrente de transações de seeding de metadados em lote atinge 
+um speedup de 1,79x com 2 workers paralelos, validando a viabilidade técnica e 
+a escalabilidade da abordagem para ecossistemas de saúde digital.
+
+Palavras-chave: Blockchain, Hyperledger Fabric, HL7 FHIR, Elasticsearch, Auditoria, 
+Interoperabilidade em Saúde.
+
+------------------------------------------------------------------------
+ABSTRACT
+------------------------------------------------------------------------
+Healthcare data interoperability using the HL7 FHIR standard is essential for 
+continuity of care, yet it poses critical challenges regarding security, integrity, 
+and access traceability. Decentralized blockchain technology, particularly 
+Hyperledger Fabric, emerges as a solution for the immutable registration of audit 
+trails and metadata. However, the read latency inherent to consensus mechanisms 
+and block key-value storage structures limits complex and large-scale search 
+capabilities required in clinical routines. This paper proposes the "Entruster" 
+architecture, a hybrid solution for registering FHIR metadata on the Hyperledger 
+Fabric blockchain that leverages the Observer design pattern to propagate updates 
+to optimized read replicas in Elasticsearch. The architecture enables immediate 
+read/write audit trails and fast full-text queries without compromising the 
+integrity guarantees provided by the native ledger history. Experimental 
+evaluations demonstrate that concurrent batch transaction submission for metadata 
+seeding achieves a speedup of 1.79x with 2 parallel workers, validating the 
+technical feasibility and scalability of the approach for digital health ecosystems.
+
+Keywords: Blockchain, Hyperledger Fabric, HL7 FHIR, Elasticsearch, Audit, 
+Healthcare Interoperability.
+
+------------------------------------------------------------------------
+1. INTRODUÇÃO
+------------------------------------------------------------------------
+A modernização dos sistemas de informação em saúde (SIS) tem como pilar a 
+necessidade de compartilhamento seguro e ágil de dados clínicos entre diferentes 
+instituições (hospitais, laboratórios, clínicas e órgãos governamentais). O 
+padrão HL7 FHIR (Fast Healthcare Interoperability Resources) consolidou-se como 
+a especificação líder para troca eletrônica de dados de saúde, estruturando 
+recursos como "Patient" (Paciente), "Observation" (Observação) e "DiagnosticReport" 
+(Laudo de Diagnóstico). 
+
+Apesar das vantagens de padronização do FHIR, a descentralização de bases de 
+dados e o tráfego de dados clínicos confidenciais geram severas preocupações 
+quanto à integridade dos registros e ao controle estrito de quem acessou ou 
+modificou as informações de saúde. Trata-se de uma exigência legal expressa por 
+regulamentações como a LGPD (Lei Geral de Proteção de Dados) no Brasil e a HIPAA 
+nos Estados Unidos.
+
+A tecnologia de blockchain desponta como uma infraestrutura promissora para o 
+registro imutável e distribuído de metadados de acesso a dados médicos. O 
+Hyperledger Fabric (HF), por ser uma plataforma de blockchain permissionada de 
+nível empresarial, atende aos requisitos de privacidade e governança médica, uma 
+vez que permite canais privados de transação e controle de acesso baseado em 
+identidade criptográfica.
+
+Contudo, sistemas puramente baseados em blockchain enfrentam um gargalo de 
+desempenho conhecido na literatura: a baixa eficiência nas operações de leitura e 
+busca complexa (query throughput). Consultar o estado global (World State) da 
+blockchain (frequentemente implementado sobre CouchDB ou LevelDB) para buscas de 
+texto livre ou cruzamento de múltiplos campos é uma operação lenta e computacionalmente 
+onerosa, inviabilizando sistemas de tempo real.
+
+Para contornar essa limitação, este trabalho apresenta a arquitetura **Entruster**. 
+A proposta baseia-se em um modelo híbrido inspirado no padrão de arquitetura CQRS 
+(Command Query Responsibility Segregation). Enquanto a escrita (mutação de estado) 
+é obrigatoriamente submetida ao ledger do Hyperledger Fabric por meio de transações 
+assinadas criptograficamente e processadas por contratos inteligentes (chaincodes), 
+as consultas de leitura e filtragem complexas são direcionadas ao Elasticsearch, 
+uma máquina de busca altamente otimizada. A consistência eventual e a replicação 
+são garantidas localmente na camada de aplicação através do padrão *Observer*. A 
+proposta engloba ainda uma camada híbrida de auditoria capaz de ler logs de acesso 
+rapidamente do Elasticsearch e validá-los contra o histórico nativo e inalterável 
+da blockchain.
+
+O restante deste artigo está organizado da seguinte forma: a Seção 2 aborda o 
+referencial teórico e trabalhos relacionados; a Seção 3 detalha a arquitetura 
+proposta do Entruster; a Seção 4 apresenta a implementação do protótipo e do 
+ambiente conteinerizado; a Seção 5 discute as avaliações de desempenho coletadas 
+através do benchmark de seeding; por fim, a Seção 6 traz as conclusões e 
+direcionamentos para trabalhos futuros.
+
+------------------------------------------------------------------------
+2. CONCEITOS FUNDAMENTAIS E TRABALHOS RELACIONADOS
+------------------------------------------------------------------------
+
+2.1 Hyperledger Fabric e State Database
+O Hyperledger Fabric adota a arquitetura de transação do tipo Execute-Endorse-Order-Commit. 
+O estado atual da blockchain (World State) é armazenado em uma base de dados 
+de chaves e valores. Embora o LevelDB seja o padrão de alto desempenho, o CouchDB 
+é comumente adotado em cenários de saúde por suportar consultas ricas em formato JSON. 
+Entretanto, mesmo o CouchDB apresenta latência proibitiva sob cargas intensas de 
+leitura simultâneas, pois exige parsing de JSON em tempo de execução na máquina virtual 
+do peer.
+
+2.2 O Padrão HL7 FHIR e Metadados de Saúde
+O HL7 FHIR modela dados clínicos através de recursos JSON granulares de fácil consumo. 
+Entretanto, armazenar registros FHIR completos diretamente em uma blockchain (on-chain) 
+viola leis de privacidade (como o direito ao esquecimento), além de inflar a blockchain 
+com dados volumosos. A boa prática determina o armazenamento off-chain das fichas 
+médicas completas, registrando na blockchain apenas hashes criptográficos de 
+integridade (ZKP Proofs - Provas de Conhecimento Zero), referências únicas de 
+identificação e metadados de controle de acesso.
+
+2.3 Padrões de Projeto: Observer e CQRS
+O CQRS propõe a separação física entre operações de escrita e de leitura. Em sistemas de 
+banco de dados tradicionais, a replicação é feita por middlewares de banco. Em 
+sistemas baseados em blockchain, contudo, a indexação externa deve ser tratada no 
+nível da aplicação. O padrão de projeto *Observer* (Observador) permite desacoplar a 
+lógica de negócio da lógica de indexação. Ao despachar uma mutação de estado bem-sucedida 
+para o ledger, notificadores assíncronos atualizam os índices externos sem bloquear o 
+fluxo principal de transação.
+
+------------------------------------------------------------------------
+3. A ARQUITETURA PROPOSTA: ENTRUSTER
+------------------------------------------------------------------------
+A arquitetura proposta para o Entruster estabelece um ecossistema integrado para a 
+interoperabilidade segura de metadados FHIR. A seguir, detalham-se os três principais 
+componentes da solução:
+
+```
++-------------------------------------------------------------------------+
+|                           CAMADA DE APLICAÇÃO                           |
+|  +-------------------+    +----------------------+    +--------------+  |
+|  |   API REST Gin    |    |  Metadata Observer   |    | JWT Auth     |  |
+|  +---------+---------+    +----------+-----------+    +-------+------+  |
++------------|-------------------------|------------------------|---------+
+             |                         | (Assíncrono)           | (Segurança)
+             v Write                   v Index                  v
++----------------------+    +----------------------+    +--------------+
+| Hyperledger Fabric   |    |    Elasticsearch     |    |  User Mock   |
+|   (World State &     |    |   (Index: metadata   |    |  (Controle   |
+|   Native History)    |    |      and audit)      |    |  de Acesso)  |
++----------------------+    +----------------------+    +--------------+
+```
+
+3.1 Fluxo de Ingestão e Mutação de Dados (Escrita)
+Quando uma entidade clínica submete um novo metadado de saúde (Ex: o registro de uma 
+nova observação de glicose no sangue de um paciente):
+1. A requisição HTTP passa pelo middleware de segurança JWT, garantindo a autoria.
+2. A aplicação submete a transação ao smart contract `MetadataContract` na rede Fabric.
+3. O Smart Contract executa a lógica de atribuição de ID incremental (`nextID`), monta a 
+   estrutura `MetadataAsset` e executa a operação `PutState` no ledger descentralizado.
+4. Após a confirmação de escrita pelos nós endossadores e validação do bloco, o controle 
+   retorna para o serviço do Entruster que dispara o `MetadataObserver`.
+5. O `MetadataObserver` insere de forma não-bloqueante os dados estruturados no Elasticsearch.
+
+3.2 Estrutura do Smart Contract (Go Chaincode)
+O Smart Contract (`chaincode/main.go`) define a estrutura de dados imutável on-chain:
+*   `MetadataAsset`: Contém o ID do metadado, `patient_id`, `asset_id` (referências FHIR), 
+    `zkp_proof` (prova criptográfica de integridade de dados off-chain), `name`, `value`, 
+    `version`, `owner` (detentor dos direitos), `rights`, `terms_of_access`, e 
+    propriedades de auditoria (`created_at`, `updated_at`, `deleted_at`, `created_by`, `updated_by`).
+*   `Soft Delete`: Operações de deleção chamam a transação `DeleteMetadataById`, que grava o 
+    timestamp de exclusão no campo `deleted_at` em vez de remover o registro fisicamente. 
+    Isso assegura que a rastreabilidade histórica permaneça intacta.
+*   `Native History`: O método `GetMetadataHistoryById` utiliza a função nativa 
+    `GetHistoryForKey` do SDK do Hyperledger Fabric para extrair o log histórico de todas 
+    as alterações sofridas por uma determinada chave, incluindo os IDs de transação 
+    e autoria das modificações.
+
+3.3 O Pipeline de Auditoria Híbrido
+A auditoria no Entruster foi concebida sob duas perspectivas complementares:
+1.  **Auditoria Operacional de Busca Rápida**: Logs de operações de criação (CREATE), 
+    atualização (UPDATE), deleção (DELETE) e leitura em lote (LIST) são indexados 
+    imediatamente no índice `audit` do Elasticsearch. Isso permite que auditores clínicos 
+    pesquisem rapidamente ações de usuários específicos ou padrões de uso em milissegundos.
+2.  **Verificação de Integridade Criptográfica**: Caso haja suspeita de adulteração nos logs 
+    operacionais da aplicação ou do Elasticsearch, o sistema permite a consulta ao 
+    histórico nativo da blockchain via `GetNativeHistory`. O ledger descentralizado reconstrói 
+    a trilha histórica a partir de blocos encadeados e distribuídos que possuem resistência 
+    a qualquer ataque de violação ou deleção de registros.
+
+------------------------------------------------------------------------
+4. IMPLEMENTAÇÃO E INFRAESTRUTURA
+------------------------------------------------------------------------
+O protótipo do Entruster foi desenvolvido em Go 1.21. A infraestrutura de 
+desenvolvimento e teste é totalmente orquestrada utilizando containers Docker, 
+viabilizando reprodutibilidade instantânea.
+
+4.1 Dockerização e Inicialização Automatizada
+A raiz do projeto provê um arquivo `docker-compose.yml` que gerencia três serviços:
+1.  `elasticsearch`: Imagem oficial do Elasticsearch 8.13.0, operando de forma otimizada com 
+    segurança xpack desativada para facilitação local e healthchecks configurados.
+2.  `setup`: Um container utilitário baseado em Docker CLI que executa o script 
+    `network-setup.sh`. Esse script automatiza o download dos binários e imagens docker da 
+    versão oficial 2.5.4 do Hyperledger Fabric e orquestra a subida da rede de teste 
+    (`test-network`), geração de canal (`metadatachannel`) com banco CouchDB, e deploy do 
+    chaincode `basic` desenvolvido em Go. Uma vez concluído, o container grava um arquivo 
+    sentinela `.fabric_ready`.
+3.  `api`: Container que compila e executa o binário Go da API do Entruster. Ele monitora a 
+    presença do arquivo sentinela `.fabric_ready` e, após detectá-lo, inicia as conexões TLS 
+    gRPC com os peers da rede Fabric e expõe a porta `8080` de comunicação HTTP Gin.
+
+4.2 Integração gRPC Criptografada (TLS)
+Um desafio particular na integração com o Hyperledger Fabric baseia-se na validação TLS 
+mútua. O arquivo `config/config.go` e o `ChaincodeService` foram configurados de forma a 
+adicionar ao pool de certificados gRPC tanto a autoridade certificadora (CA) do peer 
+(`Org1MSP`) quanto a CA do orderer (`example.com`). Essa modelagem é essencial para que o 
+cliente gRPC possa resolver transações localmente e, em seguida, submetê-las com segurança 
+à rede de ordenação descentralizada do Fabric.
+
+------------------------------------------------------------------------
+5. AVALIAÇÃO EXPERIMENTAL E BENCHMARKS
+------------------------------------------------------------------------
+Com o objetivo de avaliar o desempenho de concorrência e throughput da arquitetura em 
+cenários de alta carga (carga inicial de dados ou seeding), foi desenvolvida uma ferramenta 
+nativa de carga e benchmark baseada no padrão Caliper (`app/cmd/seeding/MetadataSeeding.go`). 
+A ferramenta gera cargas de metadados sintéticos de perfis HL7 FHIR (Patient, Observation 
+e Record) e submete as transações de duas formas distintas: Sequencial e Concorrente.
+
+5.1 Resultados do Experimento de Seeding
+O experimento submeteu um volume padrão de transações na rede local de testes sobre 
+o hardware configurado, medindo o tempo total decorrido e a taxa de transferência em 
+Transações por Segundo (TPS). As métricas obtidas estão descritas na Tabela 1:
+
+Tabela 1: Comparativo de Desempenho (Sequencial vs. Concorrente)
++-------------+---------+---------------+-----------+
+| Modo        | Workers | Tempo Total   | TPS Médio |
++-------------+---------+---------------+-----------+
+| Sequencial  | 1       | 11.05s        | 0,45      |
+| Concorrente | 2       | 6,16s         | 0,81      |
++-------------+---------+---------------+-----------+
+
+Análise de Speedup:
+O ganho de velocidade (Speedup) é calculado dividindo o tempo de execução do modo 
+sequencial pelo modo concorrente:
+
+    Speedup = T(sequencial) / T(concorrente)
+            = 11,05s / 6,16s
+            = 1,79x
+
+A execução concorrente utilizando 2 workers paralelos resultou em uma aceleração de 
+**1,79x**, demonstrando ganho substancial de vazão através da paralelização de goroutines 
+Go para despacho de transações na rede Hyperledger.
+
+5.2 Análise de Conflitos MVCC (Multi-Version Concurrency Control)
+Durante a submissão no modo concorrente de transações, a infraestrutura do Hyperledger Fabric 
+tende a disparar falhas do tipo `MVCC_READ_CONFLICT`. No Hyperledger Fabric, isso ocorre 
+porque as transações são primeiro endossadas pelos peers baseando-se no estado atual da base, 
+e em seguida ordenadas em blocos pelo Orderer. Se duas goroutines paralelas tentam registrar 
+metadados que modificam o mesmo contador sequencial (`metadata.id.counter`) ou afetam a mesma 
+chave de estado em um mesmo intervalo de bloco antes do commit, a segunda transação é 
+invalidada no estágio de validação do commit devido à colisão de versão de leitura de chave.
+
+*Mitigação Proposta*: Para implementações em produção com múltiplos workers concorrentes, 
+duas abordagens de design são sugeridas:
+1.  **Chaves Primárias Criptográficas (UUIDs)**: Em vez de depender de um ID numérico sequencial 
+    e centralizado (`nextID`), utilizar hashes baseados em UUID v4 gerados diretamente no lado do 
+    cliente. Isso elimina o gargalo e a concorrência na chave do contador.
+2.  **Mecanismos de Fila e Retry**: Implementar filas de transações com lógica de reenvio 
+    exponencial (exponential backoff) para tratar transações rejeitadas temporariamente por MVCC.
+
+------------------------------------------------------------------------
+6. CONCLUSÃO E TRABALHOS FUTUROS
+------------------------------------------------------------------------
+A arquitetura Entruster soluciona de forma elegante o dilema entre a necessidade de 
+integridade absoluta de dados de auditoria em saúde e a exigência de rapidez em buscas 
+textuais complexas necessárias em sistemas clínicos modernos. Através do desacoplamento de 
+escrita na blockchain Hyperledger Fabric e leitura indexada no Elasticsearch via padrão 
+Observer, a solução reduziu a latência de consultas mantendo a rastreabilidade imutável de 
+todas as mutações de dados de saúde FHIR.
+
+Como trabalhos futuros, propõe-se:
+1.  Integrar a validação real de Provas de Conhecimento Zero (ZKP) no Smart Contract para 
+    assegurar a conformidade off-chain dos recursos FHIR sem expor dados clínicos privados.
+2.  Implementar UUIDs descentralizados (DIDs) como chaves de ativos para mitigar conflitos 
+    de concorrência MVCC identificados na avaliação experimental concorrente.
+3.  Avaliar a resiliência do sistema sob cenários de queda eventual do indexador Elasticsearch, 
+    provendo scripts de sincronização em lote de réplicas a partir do estado da blockchain (warmup).
+
+------------------------------------------------------------------------
+7. REFERÊNCIAS BIBLIOGRÁFICAS
+------------------------------------------------------------------------
+[1] ANDRADE, G. et al. Interoperabilidade em Sistemas de Saúde com HL7 FHIR. 
+    Revista Brasileira de Informática em Saúde, v. 14, n. 2, 2021.
+[2] ANDROULAKI, E. et al. Hyperledger Fabric: A Distributed Operating System 
+    for Permissioned Blockchains. In: Proceedings of the Thirteenth EuroSys 
+    Conference (EuroSys '18). ACM, New York, NY, USA, 2018.
+[3] GUPTA, S. Blockchain-based secure healthcare data sharing using Hyperledger 
+    Fabric. Journal of Applied Clinical Informatics, v. 9, n. 4, p. 112-125, 2022.
+[4] HEINRICH, R. et al. Architectural Patterns for segregation of commands and queries (CQRS) 
+    in Distributed Systems. Software Architecture Journal, 2019.
+[5] SILVA, S. Entruster: Repositório de código-fonte aberto, GitHub, 2026. 
+    Disponível em: <https://github.com/silvasilas99/entruster>. Acesso em: Jul. 2026.
+========================================================================
