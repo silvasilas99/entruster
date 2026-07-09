@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Remove sentinel file if it exists to signal that the network is not ready during setup
+rm -f "$(dirname "$0")/../.fabric_ready"
+
 # Define variables
 FABRIC_VERSION="2.5.4"
 CA_VERSION="1.5.7"

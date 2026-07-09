@@ -11,7 +11,7 @@ services:
     environment:
       - GOFLAGS=-buildvcs=false
     entrypoint: /bin/sh
-    command: -c "apk add --no-cache bash curl jq gcompat libc6-compat go && ./scripts/network-setup.sh && touch .fabric_ready"
+    command: -c "rm -f .fabric_ready && apk add --no-cache bash curl jq gcompat libc6-compat go && ./scripts/network-setup.sh && touch .fabric_ready && (docker restart entruster-api || true)"
     network_mode: "host"
 
   api:

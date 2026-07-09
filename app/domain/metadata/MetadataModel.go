@@ -21,6 +21,11 @@ type MetadataModel struct {
 	DeletedBy 		string  `json:"deleted_by"`
 }
 
+// TODO: change owner to source
+// TODO: add category
+// TODO: add resource type
+// TODO: add primitive type
+
 func (m *MetadataModel) BeforeCreate() {
 	m.CreatedAt = nowRFC3339()
 }
