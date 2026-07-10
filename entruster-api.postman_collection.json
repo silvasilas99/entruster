@@ -1,0 +1,200 @@
+{
+    "info": {
+        "_postman_id": "entruster-api-v2",
+        "name": "Entruster API",
+        "description": "REST API for registering and querying healthcare metadata and third-party app events on Hyperledger Fabric.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8080",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfNzc3IiwibmFtZSI6IkRyLiBTaWxhcyBTaWx2YSIsInJvbGUiOiJDaGllZiBDbGluaWNpYW4iLCJpYXQiOjE3ODIyOTc2MDB9.4M2R0_2nN0X4Y0tX6W7N8wYwS8uV2Fz3T9k_Y3Z1U_w",
+            "type": "string"
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Metadata",
+            "item": [
+                {
+                    "name": "POST Register Metadata",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Content-Type", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/metadata/", "host": ["{{base_url}}"], "path": ["api","metadata",""]},
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"patient_id\": 1,\n    \"asset_id\": 100,\n    \"name\": \"ECG Recording\",\n    \"value\": \"Base64EncodedECGData\",\n    \"version\": \"1.0\",\n    \"owner\": \"Hospital A\",\n    \"rights\": \"read-only\",\n    \"terms_of_access\": \"Authorized personnel only\",\n    \"zkp_proof\": \"zk_proof_string_here\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "GET List All Metadata",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/metadata/?patient_id=1&asset_id=100",
+                            "host": ["{{base_url}}"],
+                            "path": ["api","metadata",""],
+                            "query": [
+                                {"key": "patient_id", "value": "1"},
+                                {"key": "asset_id", "value": "100"}
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "GET Metadata by ID",
+                    "request": {
+                        "method": "GET",
+                        "url": {"raw": "{{base_url}}/api/metadata/1", "host": ["{{base_url}}"], "path": ["api","metadata","1"]}
+                    }
+                },
+                {
+                    "name": "PUT Update Metadata by ID",
+                    "request": {
+                        "method": "PUT",
+                        "header": [{"key": "Content-Type", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/metadata/1", "host": ["{{base_url}}"], "path": ["api","metadata","1"]},
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"ECG Recording v2\",\n    \"value\": \"UpdatedBase64Data\",\n    \"version\": \"2.0\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "DELETE Metadata by ID",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {"raw": "{{base_url}}/api/metadata/1", "host": ["{{base_url}}"], "path": ["api","metadata","1"]}
+                    }
+                },
+                {
+                    "name": "GET Metadata Audit Trail",
+                    "request": {
+                        "method": "GET",
+                        "url": {"raw": "{{base_url}}/api/metadata/1/auditory", "host": ["{{base_url}}"], "path": ["api","metadata","1","auditory"]}
+                    }
+                },
+                {
+                    "name": "GET Metadata Blockchain History",
+                    "request": {
+                        "method": "GET",
+                        "url": {"raw": "{{base_url}}/api/metadata/1/history", "host": ["{{base_url}}"], "path": ["api","metadata","1","history"]}
+                    }
+                }
+            ]
+        },
+        {
+            "name": "ThirdPartyAppEvent",
+            "item": [
+                {
+                    "name": "POST Register ThirdPartyAppEvent",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Content-Type", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/thirdpartyappevent/", "host": ["{{base_url}}"], "path": ["api","thirdpartyappevent",""]},
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"app_id\": \"app_001\",\n    \"event_type\": \"USER_LOGIN\",\n    \"description\": \"User authenticated successfully via OAuth2\",\n    \"event_data\": \"{\\\"ip\\\":\\\"192.168.1.1\\\",\\\"agent\\\":\\\"Mozilla/5.0\\\"}\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "POST Register ThirdPartyAppEvent (DATA_EXPORT)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Content-Type", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/thirdpartyappevent/", "host": ["{{base_url}}"], "path": ["api","thirdpartyappevent",""]},
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"app_id\": \"app_002\",\n    \"event_type\": \"DATA_EXPORT\",\n    \"description\": \"Patient data exported to external system\",\n    \"event_data\": \"{\\\"destination\\\":\\\"system_x\\\",\\\"records\\\":150}\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "GET List All ThirdPartyAppEvents",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/api/thirdpartyappevent/?app_id=app_001&event_type=USER_LOGIN",
+                            "host": ["{{base_url}}"],
+                            "path": ["api","thirdpartyappevent",""],
+                            "query": [
+                                {"key": "app_id", "value": "app_001"},
+                                {"key": "event_type", "value": "USER_LOGIN"}
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "GET ThirdPartyAppEvent by ID",
+                    "request": {
+                        "method": "GET",
+                        "url": {"raw": "{{base_url}}/api/thirdpartyappevent/1", "host": ["{{base_url}}"], "path": ["api","thirdpartyappevent","1"]}
+                    }
+                },
+                {
+                    "name": "PUT Update ThirdPartyAppEvent by ID",
+                    "request": {
+                        "method": "PUT",
+                        "header": [{"key": "Content-Type", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/thirdpartyappevent/1", "host": ["{{base_url}}"], "path": ["api","thirdpartyappevent","1"]},
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Updated description of the event\",\n    \"event_data\": \"{\\\"ip\\\":\\\"192.168.1.2\\\",\\\"reason\\\":\\\"re-auth\\\"}\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "DELETE ThirdPartyAppEvent by ID",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {"raw": "{{base_url}}/api/thirdpartyappevent/1", "host": ["{{base_url}}"], "path": ["api","thirdpartyappevent","1"]}
+                    }
+                },
+                {
+                    "name": "GET ThirdPartyAppEvent Audit Trail",
+                    "request": {
+                        "method": "GET",
+                        "url": {"raw": "{{base_url}}/api/thirdpartyappevent/1/auditory", "host": ["{{base_url}}"], "path": ["api","thirdpartyappevent","1","auditory"]}
+                    }
+                },
+                {
+                    "name": "GET ThirdPartyAppEvent Blockchain History",
+                    "request": {
+                        "method": "GET",
+                        "url": {"raw": "{{base_url}}/api/thirdpartyappevent/1/history", "host": ["{{base_url}}"], "path": ["api","thirdpartyappevent","1","history"]}
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Health",
+            "item": [
+                {
+                    "name": "GET Elasticsearch Health",
+                    "request": {
+                        "method": "GET",
+                        "url": {"raw": "{{base_url}}/api/health/elasticsearch", "host": ["{{base_url}}"], "path": ["api","health","elasticsearch"]}
+                    }
+                }
+            ]
+        }
+    ]
+}
