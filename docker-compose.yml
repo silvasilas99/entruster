@@ -4,8 +4,9 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.setup
+    working_dir: ${PWD}
     volumes:
-      - .:/workspace  # Mapeia a pasta raiz do projeto para /workspace
+      - .:${PWD}  # Mapeia a pasta raiz do projeto para o mesmo path do host
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - GOFLAGS=-buildvcs=false

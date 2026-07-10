@@ -10,7 +10,7 @@ CA_VERSION="1.5.7"
 FABRIC_DIR="./fabric-samples"
 CHANNEL_NAME="metadatachannel"
 CHAINCODE_NAME="basic"
-CHAINCODE_PATH="/workspace/chaincode" 
+CHAINCODE_PATH="${PWD}/chaincode" 
 
 echo "=================================================="
 echo "    Setting up Hyperledger Fabric Test Network    "
