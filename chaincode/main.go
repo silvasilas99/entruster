@@ -328,6 +328,243 @@ func (c *MetadataContract) GetMetadataHistoryById(
 //  Entry point
 // ────────────────────────────────────────────────────────────
 
+
+// ────────────────────────────────────────────────────────────
+//  ThirdPartyAppEvent Methods on MetadataContract
+// ────────────────────────────────────────────────────────────
+
+const thirdPartyAppEventCounterKey = "thirdpartyappevent.id.counter"
+
+type ThirdPartyAppEventAsset struct {
+	ID            uint64 `json:"id"`
+	AppID         string `json:"app_id"`
+	EventType     string `json:"event_type"`
+	EventData     string `json:"event_data"`
+	Description   string `json:"description"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
+	DeletedAt     string `json:"deleted_at,omitempty"`
+	CreatedBy     string `json:"created_by"`
+	UpdatedBy     string `json:"updated_by"`
+}
+
+func nextThirdPartyAppEventID(ctx contractapi.TransactionContextInterface) (uint64, error) {
+	raw, err := ctx.GetStub().GetState(thirdPartyAppEventCounterKey)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read counter: %w", err)
+	}
+	var current uint64
+	if raw != nil {
+		current, err = strconv.ParseUint(string(raw), 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse counter: %w", err)
+		}
+	}
+	next := current + 1
+	if err := ctx.GetStub().PutState(thirdPartyAppEventCounterKey, []byte(strconv.FormatUint(next, 10))); err != nil {
+		return 0, fmt.Errorf("failed to update counter: %w", err)
+	}
+	return next, nil
+}
+
+func thirdPartyAppEventKey(id uint64) string {
+	return fmt.Sprintf("thirdpartyappevent_%d", id)
+}
+
+func putThirdPartyAppEvent(ctx contractapi.TransactionContextInterface, asset ThirdPartyAppEventAsset) error {
+	data, err := json.Marshal(asset)
+	if err != nil {
+		return fmt.Errorf("failed to marshal asset: %w", err)
+	}
+	return ctx.GetStub().PutState(thirdPartyAppEventKey(asset.ID), data)
+}
+
+func getThirdPartyAppEvent(ctx contractapi.TransactionContextInterface, id uint64) (*ThirdPartyAppEventAsset, error) {
+	data, err := ctx.GetStub().GetState(thirdPartyAppEventKey(id))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read asset %d: %w", id, err)
+	}
+	if data == nil {
+		return nil, fmt.Errorf("asset %d does not exist", id)
+	}
+	var asset ThirdPartyAppEventAsset
+	if err := json.Unmarshal(data, &asset); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal asset: %w", err)
+	}
+	return &asset, nil
+}
+
+func (c *MetadataContract) InitThirdPartyAppEventLedger(ctx contractapi.TransactionContextInterface) error {
+	return ctx.GetStub().PutState(thirdPartyAppEventCounterKey, []byte("0"))
+}
+
+func (c *MetadataContract) RegisterThirdPartyAppEventOnNetwork(
+	ctx contractapi.TransactionContextInterface,
+	appID string,
+	eventType string,
+	eventData string,
+	description string,
+	createdAt string,
+	updatedAt string,
+	createdBy string,
+	updatedBy string,
+) (string, error) {
+	id, err := nextThirdPartyAppEventID(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	asset := ThirdPartyAppEventAsset{
+		ID:            id,
+		AppID:         appID,
+		EventType:     eventType,
+		EventData:     eventData,
+		Description:   description,
+		CreatedAt:     createdAt,
+		UpdatedAt:     updatedAt,
+		CreatedBy:     createdBy,
+		UpdatedBy:     updatedBy,
+	}
+	return strconv.FormatUint(id, 10), putThirdPartyAppEvent(ctx, asset)
+}
+
+func (c *MetadataContract) GetAllThirdPartyAppEventsFromNetwork(ctx contractapi.TransactionContextInterface) ([]ThirdPartyAppEventAsset, error) {
+	iter, err := ctx.GetStub().GetStateByRange("thirdpartyappevent_", "thirdpartyappevent_~")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get state range: %w", err)
+	}
+	defer iter.Close()
+
+	var results []ThirdPartyAppEventAsset
+	for iter.HasNext() {
+		kv, err := iter.Next()
+		if err != nil {
+			return nil, err
+		}
+		var asset ThirdPartyAppEventAsset
+		if err := json.Unmarshal(kv.Value, &asset); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal asset: %w", err)
+		}
+		if asset.DeletedAt != "" {
+			continue
+		}
+		results = append(results, asset)
+	}
+	return results, nil
+}
+
+func (c *MetadataContract) GetThirdPartyAppEventById(
+	ctx contractapi.TransactionContextInterface,
+	idStr string,
+) (*ThirdPartyAppEventAsset, error) {
+	id, err := mustParseUint64(idStr, "id")
+	if err != nil {
+		return nil, err
+	}
+	return getThirdPartyAppEvent(ctx, id)
+}
+
+func (c *MetadataContract) UpdateThirdPartyAppEventById(
+	ctx contractapi.TransactionContextInterface,
+	idStr string,
+	eventType string,
+	eventData string,
+	description string,
+	updatedAt string,
+	updatedBy string,
+) error {
+	id, err := mustParseUint64(idStr, "id")
+	if err != nil {
+		return err
+	}
+	asset, err := getThirdPartyAppEvent(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	asset.EventType = eventType
+	asset.EventData = eventData
+	asset.Description = description
+	asset.UpdatedAt = updatedAt
+	asset.UpdatedBy = updatedBy
+
+	return putThirdPartyAppEvent(ctx, *asset)
+}
+
+func (c *MetadataContract) DeleteThirdPartyAppEventById(
+	ctx contractapi.TransactionContextInterface,
+	idStr string,
+	deletedAt string,
+) error {
+	id, err := mustParseUint64(idStr, "id")
+	if err != nil {
+		return err
+	}
+	asset, err := getThirdPartyAppEvent(ctx, id)
+	if err != nil {
+		return err
+	}
+	if asset.DeletedAt != "" {
+		return fmt.Errorf("asset %d has already been deleted", id)
+	}
+	if deletedAt == "" {
+		deletedAt = time.Now().UTC().Format(time.RFC3339)
+	}
+	asset.DeletedAt = deletedAt
+	return putThirdPartyAppEvent(ctx, *asset)
+}
+
+type ThirdPartyAppEventHistoryRecord struct {
+	TxId      string                   `json:"tx_id"`
+	Timestamp string                   `json:"timestamp"`
+	IsDelete  bool                     `json:"is_delete"`
+	Asset     *ThirdPartyAppEventAsset `json:"asset,omitempty"`
+}
+
+func (c *MetadataContract) GetThirdPartyAppEventHistoryById(
+	ctx contractapi.TransactionContextInterface,
+	idStr string,
+) ([]ThirdPartyAppEventHistoryRecord, error) {
+	id, err := mustParseUint64(idStr, "id")
+	if err != nil {
+		return nil, err
+	}
+
+	resultsIterator, err := ctx.GetStub().GetHistoryForKey(thirdPartyAppEventKey(id))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get history for asset %d: %w", id, err)
+	}
+	defer resultsIterator.Close()
+
+	var records []ThirdPartyAppEventHistoryRecord
+	for resultsIterator.HasNext() {
+		response, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		var asset *ThirdPartyAppEventAsset
+		if len(response.Value) > 0 {
+			var a ThirdPartyAppEventAsset
+			if err := json.Unmarshal(response.Value, &a); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal historical asset state: %w", err)
+			}
+			asset = &a
+		}
+
+		timestamp := time.Unix(response.Timestamp.Seconds, int64(response.Timestamp.Nanos)).UTC().Format(time.RFC3339)
+
+		records = append(records, ThirdPartyAppEventHistoryRecord{
+			TxId:      response.TxId,
+			Timestamp: timestamp,
+			IsDelete:  response.IsDelete,
+			Asset:     asset,
+		})
+	}
+
+	return records, nil
+}
+
 func main() {
 	cc, err := contractapi.NewChaincode(&MetadataContract{})
 	if err != nil {

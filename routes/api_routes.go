@@ -8,6 +8,7 @@ import (
 	"github.com/silvasilas99/entruster/app/core/audit"
 	"github.com/silvasilas99/entruster/app/core/chaincode"
 	"github.com/silvasilas99/entruster/app/core/middleware"
+	"github.com/silvasilas99/entruster/app/domain/thirdpartyappevent"
 	"github.com/silvasilas99/entruster/app/domain/metadata"
 	"github.com/silvasilas99/entruster/app/core/elasticsearch"
 	swaggerFiles "github.com/swaggo/files"
@@ -26,6 +27,9 @@ func SetupRoutes(contract *client.Contract) *gin.Engine {
 	metadataObserver := metadata.NewMetadataObserver(auditSvc, elasticSvc)
 
 	crudCtrl := metadata.NewMetadataCrudController(contract, metadataObserver)
+	thirdPartyAppEventObserver := thirdpartyappevent.NewThirdPartyAppEventObserver(auditSvc, elasticSvc)
+	thirdPartyAppEventCrudCtrl := thirdpartyappevent.NewThirdPartyAppEventCrudController(contract, thirdPartyAppEventObserver)
+
 
 	// Swagger UI route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -43,6 +47,18 @@ func SetupRoutes(contract *client.Contract) *gin.Engine {
 		metadataRoutes.DELETE("/:id", crudCtrl.DeleteByID())
 		metadataRoutes.GET("/:id/auditory", metadata.GetMetadataAuditoryByIDHandler(auditSvc))
 		metadataRoutes.GET("/:id/history", metadata.GetMetadataNativeHistoryByIDHandler(auditSvc))
+	}
+
+	thirdpartyappeventRoutes := r.Group("/api/thirdpartyappevent")
+	thirdpartyappeventRoutes.Use(middleware.JWTAuth())
+	{
+		thirdpartyappeventRoutes.POST("/", thirdPartyAppEventCrudCtrl.Store())
+		thirdpartyappeventRoutes.GET("/", thirdpartyappevent.GetAll(contract, thirdPartyAppEventObserver, elasticSvc))
+		thirdpartyappeventRoutes.GET("/:id", thirdpartyappevent.GetThirdPartyAppEventByIDHandler(contract))
+		thirdpartyappeventRoutes.PUT("/:id", thirdPartyAppEventCrudCtrl.UpdateThirdPartyAppEventByIDHandler())
+		thirdpartyappeventRoutes.DELETE("/:id", thirdPartyAppEventCrudCtrl.DeleteByID())
+		thirdpartyappeventRoutes.GET("/:id/auditory", thirdpartyappevent.GetThirdPartyAppEventAuditoryByIDHandler(auditSvc))
+		thirdpartyappeventRoutes.GET("/:id/history", thirdpartyappevent.GetThirdPartyAppEventNativeHistoryByIDHandler(auditSvc))
 	}
 
 	// Health check routes
