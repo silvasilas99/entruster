@@ -1,24 +1,21 @@
-version: '3.8'
-
 services:
   setup:
-    image: docker:24-cli
     container_name: fabric-setup
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.setup
     volumes:
-      - ${PWD}:${PWD}
+      - .:/workspace  # Mapeia a pasta raiz do projeto para /workspace
       - /var/run/docker.sock:/var/run/docker.sock
-    working_dir: ${PWD}
     environment:
       - GOFLAGS=-buildvcs=false
-    entrypoint: /bin/sh
-    command: -c "rm -f .fabric_ready && apk add --no-cache bash curl jq gcompat libc6-compat go && ./scripts/network-setup.sh && touch .fabric_ready && (docker restart entruster-api || true)"
     network_mode: "host"
 
   api:
     container_name: entruster-api
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/Dockerfile.api
     environment:
       - TEST_NETWORK_PATH=/app/fabric-samples/test-network
       - PEER_ENDPOINT=dns:///localhost:7051
@@ -26,7 +23,7 @@ services:
       - ELASTICSEARCH_URL=http://localhost:9200
     volumes:
       - ./fabric-samples:/app/fabric-samples
-      - .:/app/shared          # exposes project root so .fabric_ready sentinel is visible
+      - .:/app/shared          # Expõe a raiz para que o sentinela .fabric_ready seja visível
     network_mode: "host"
     restart: on-failure
     depends_on:

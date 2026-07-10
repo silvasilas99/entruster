@@ -1,0 +1,11 @@
+# Usa a imagem oficial do Docker CLI
+FROM docker:24-cli
+
+# Instala as dependências, incluindo o dos2unix para corrigir quebras de linha do Windows
+RUN apk update && \
+    apk add --no-cache bash curl jq gcompat libc6-compat go dos2unix
+
+WORKDIR /workspace
+
+# O CMD agora corrige o arquivo (dos2unix), dá permissão (chmod) e depois executa
+CMD ["/bin/bash", "-c", "dos2unix ./scripts/network-setup.sh && chmod +x ./scripts/network-setup.sh && ./scripts/network-setup.sh && touch .fabric_ready && docker restart entruster-api || true"]
