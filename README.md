@@ -42,7 +42,7 @@ graph TD
 *   **Swagger (`app/core/swagger/`)**: Documentação interativa e auto-gerada da API por meio do Swagger UI em `/swagger/index.html`.
 
 ### 2. Camada de Domínio
-*   **Modelo de Metadados (`app/domain/metadata/MetadataModel.go`)**: Estrutura de dados principal que trafega entre a aplicação, a blockchain e o Elasticsearch. Contém informações essenciais de metadados de saúde, como referências ao paciente (`patient_id`), ao recurso original (`asset_id`), provas criptográficas de integridade / zero-knowledge (`zkp_proof`), metadados de ciclo de vida (`created_at`, `updated_at`, `deleted_at`) e autoria (`created_by`, `updated_by`).
+*   **Modelo de Metadados (`app/domain/metadata/MetadataModel.go`)**: Estrutura de dados principal que trafega entre a aplicação, a blockchain e o Elasticsearch. Contém informações essenciais de metadados de saúde, como referências ao paciente (`patient_id`), ao recurso original (`asset_id`), provas criptográficas de integridade / zero-knowledge (`category`), metadados de ciclo de vida (`created_at`, `updated_at`, `deleted_at`) e autoria (`created_by`, `updated_by`).
 *   **Controllers (`MetadataCrudController.go` & `MetadataSearchController.go`)**: Mapeiam requisições HTTP para os serviços adequados e estruturam as respostas de sucesso ou erro da API.
 
 ### 3. Camada de Observação (Decoupling)
@@ -221,7 +221,7 @@ curl -X POST http://localhost:8080/api/metadata/ \
   -d '{
     "patient_id": 1001,
     "asset_id": 2002,
-    "zkp_proof": "a8f5c2d6e9f8a3b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9",
+    "category": "a8f5c2d6e9f8a3b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9",
     "name": "FHIR-Patient-Registration",
     "value": "Patient/1001-active-metadata",
     "version": "1.0",

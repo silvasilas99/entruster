@@ -90,11 +90,11 @@ func (m *MetadataService) UpdateMetadataByID(id string, req MetadataModel) error
 	_, err := m.chaincodeQuery.UpdateOnChain(
 		"UpdateMetadataById",
 		id,
-		req.ZKPProof,
+		req.Category,
 		req.Name,
 		req.Value,
 		req.Version,
-		req.Owner,
+		req.Source,
 		req.Rights,
 		req.TermsOfAccess,
 		req.UpdatedAt,

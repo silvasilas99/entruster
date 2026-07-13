@@ -265,7 +265,7 @@ const docTemplate = `{
                 "deleted_by": {"type":"string"},
                 "id": {"type":"integer"},
                 "name": {"type":"string"},
-                "owner": {"type":"string"},
+                "source": {"type":"string"},
                 "patient_id": {"type":"integer"},
                 "rights": {"type":"string"},
                 "terms_of_access": {"type":"string"},
@@ -273,7 +273,7 @@ const docTemplate = `{
                 "updated_by": {"type":"string"},
                 "value": {"type":"string"},
                 "version": {"type":"string"},
-                "zkp_proof": {"type":"string"}
+                "category": {"type":"string"}
             }
         },
         "thirdpartyappevent.ThirdPartyAppEventModel": {

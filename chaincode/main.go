@@ -24,7 +24,7 @@ type MetadataAsset struct {
 	ID            uint64 `json:"id"`
 	PatientID     uint64 `json:"patient_id"`
 	AssetID       uint64 `json:"asset_id"`
-	ZKPProof      string `json:"zkp_proof"`
+	Category      string `json:"category"`
 	Name          string `json:"name"`
 	Value         string `json:"value"`
 	Version       string `json:"version"`
@@ -157,7 +157,7 @@ func (c *MetadataContract) RegisterMetadataOnNetwork(
 		ID:            id,
 		PatientID:     patientID,
 		AssetID:       assetID,
-		ZKPProof:      zkpProof,
+		Category:      zkpProof,
 		Name:          name,
 		Value:         value,
 		Version:       version,
@@ -238,7 +238,7 @@ func (c *MetadataContract) UpdateMetadataById(
 		return err
 	}
 
-	asset.ZKPProof = zkpProof
+	asset.Category = zkpProof
 	asset.Name = name
 	asset.Value = value
 	asset.Version = version

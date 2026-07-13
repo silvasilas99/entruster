@@ -798,7 +798,7 @@
                 "name": {
                     "type": "string"
                 },
-                "owner": {
+                "source": {
                     "type": "string"
                 },
                 "patient_id": {
@@ -822,7 +822,7 @@
                 "version": {
                     "type": "string"
                 },
-                "zkp_proof": {
+                "category": {
                     "type": "string"
                 }
             }

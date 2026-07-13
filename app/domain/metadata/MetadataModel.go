@@ -3,28 +3,25 @@ package metadata
 import "time"
 
 type MetadataModel struct {
-	ID            	uint64 `json:"id,omitempty"`
-	PatientID     	uint64 `json:"patient_id"`
-	AssetID       	uint64 `json:"asset_id"`
-	ZKPProof      	string `json:"zkp_proof"`
-	Name          	string `json:"name"`
-	Value         	string `json:"value"`
-	Version       	string `json:"version"`
-	Owner         	string `json:"owner"`
-	Rights        	string `json:"rights"`
-	TermsOfAccess 	string `json:"terms_of_access"`
-	CreatedAt 		string  `json:"created_at,omitempty"`
-	UpdatedAt 		string  `json:"updated_at,omitempty"`
-	DeletedAt 		string `json:"deleted_at,omitempty"`
-	CreatedBy 		string  `json:"created_by"`
-	UpdatedBy 		string  `json:"updated_by"`
-	DeletedBy 		string  `json:"deleted_by"`
+	ID            	uint64 		`json:"id,omitempty"`
+	PatientID     	uint64 		`json:"patient_id"`
+	AssetID       	uint64 		`json:"asset_id"`
+	Category      	string 		`json:"category"`
+	ResourceType	string 		`json:"resource_type"`
+	PrimitiveType	string 		`json:"primitive_type"`
+	Name          	string 		`json:"name"`
+	Value         	string 		`json:"value"`
+	Version       	string 		`json:"version"`
+	Source         	string 		`json:"source"`
+	Rights        	string 		`json:"rights"`
+	TermsOfAccess 	string 		`json:"terms_of_access"`
+	CreatedAt 		string  	`json:"created_at,omitempty"`
+	UpdatedAt 		string  	`json:"updated_at,omitempty"`
+	DeletedAt 		string 		`json:"deleted_at,omitempty"`
+	CreatedBy 		string  	`json:"created_by"`
+	UpdatedBy 		string  	`json:"updated_by"`
+	DeletedBy 		string  	`json:"deleted_by"`
 }
-
-// TODO: change owner to source
-// TODO: add category
-// TODO: add resource type
-// TODO: add primitive type
 
 func (m *MetadataModel) BeforeCreate() {
 	m.CreatedAt = nowRFC3339()

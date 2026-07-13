@@ -63,7 +63,7 @@ definitions:
         type: integer
       name:
         type: string
-      owner:
+      source:
         type: string
       patient_id:
         type: integer
@@ -79,7 +79,7 @@ definitions:
         type: string
       version:
         type: string
-      zkp_proof:
+      category:
         type: string
     type: object
   utils.ErrorResponse:

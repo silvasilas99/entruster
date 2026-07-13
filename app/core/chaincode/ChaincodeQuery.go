@@ -27,11 +27,11 @@ func NewChaincodeQuery(contract *client.Contract) *ChaincodeQuery {
 type registerPayload struct {
 	PatientID     uint64 `json:"patient_id"`
 	AssetID       uint64 `json:"asset_id"`
-	ZKPProof      string `json:"zkp_proof"`
+	Category      string `json:"category"`
 	Name          string `json:"name"`
 	Value         string `json:"value"`
 	Version       string `json:"version"`
-	Owner         string `json:"owner"`
+	Source         string `json:"source"`
 	Rights        string `json:"rights"`
 	TermsOfAccess string `json:"terms_of_access"`
 	CreatedAt     string `json:"created_at"`
@@ -44,8 +44,8 @@ type registerPayload struct {
 //
 // The chaincode function expects 13 individual string arguments (positional), NOT a JSON blob:
 //
-//	patientID, assetID, zkpProof, name, value, version,
-//	owner, rights, termsOfAccess, createdAt, updatedAt, createdBy, updatedBy
+//	patientID, assetID, source, name, value, version,
+//	source, rights, termsOfAccess, createdAt, updatedAt, createdBy, updatedBy
 //
 // This method unmarshals the payload produced by MetadataService and forwards each
 // field as a separate argument so the parameter count matches the chaincode signature.
@@ -61,11 +61,11 @@ func (c *ChaincodeQuery) StoreOnChain(
 		"RegisterMetadataOnNetwork",
 		strconv.FormatUint(p.PatientID, 10),
 		strconv.FormatUint(p.AssetID, 10),
-		p.ZKPProof,
+		p.Category,
 		p.Name,
 		p.Value,
 		p.Version,
-		p.Owner,
+		p.Source,
 		p.Rights,
 		p.TermsOfAccess,
 		p.CreatedAt,

@@ -6,26 +6,30 @@ import (
 
 type MetadataDTO struct {
 	chaincode.TransferableDTO
-	PatientID     uint64 `json:"patient_id"`
-	AssetID       uint64 `json:"asset_id"`
-	ZKPProof      string `json:"zkp_proof"`
-	Name          string `json:"name"`
-	Value         string `json:"value"`
-	Version       string `json:"version"`
-	Owner         string `json:"owner"`
-	Rights        string `json:"rights"`
-	TermsOfAccess string `json:"terms_of_access"`
+	PatientID     	uint64 		`json:"patient_id"`
+	AssetID       	uint64 		`json:"asset_id"`
+	Category      	string 		`json:"category"`
+	ResourceType	string 		`json:"resource_type"`
+	PrimitiveType	string 		`json:"primitive_type"`
+	Name          	string 		`json:"name"`
+	Value         	string 		`json:"value"`
+	Version       	string 		`json:"version"`
+	Source         	string 		`json:"source"`
+	Rights        	string 		`json:"rights"`
+	TermsOfAccess 	string 		`json:"terms_of_access"`
 }
 
 func NewMetadataDTO(
 	id uint64,
 	patientID uint64,
 	assetID uint64,
-	zkpProof string,
+	category string,
+	resourceType string,
+	primitiveType string,
 	name string,
 	value string,
 	version string,
-	owner string,
+	source string,
 	rights string,
 	termsOfAccess string,
 	createdAt string,
@@ -45,36 +49,40 @@ func NewMetadataDTO(
 			DeletedAt: deletedAt,
 			DeletedBy: deletedBy,
 		},
-		PatientID:     patientID,
-		AssetID:       assetID,
-		ZKPProof:      zkpProof,
-		Name:          name,
-		Value:         value,
-		Version:       version,
-		Owner:         owner,
-		Rights:        rights,
-		TermsOfAccess: termsOfAccess,
+		PatientID:     	patientID,
+		AssetID:       	assetID,
+		Category:      	category,
+		ResourceType: 	resourceType,
+		PrimitiveType: 	primitiveType,
+		Name:          	name,
+		Value:         	value,
+		Version:       	version,
+		Source:         source,
+		Rights:        	rights,
+		TermsOfAccess: 	termsOfAccess
 	}
 }
 
 func ToModel(dto MetadataDTO) MetadataModel{
 	return MetadataModel{
-		ID: dto.TransferableDTO.ID,
-		PatientID:     dto.PatientID,
-		AssetID:       dto.AssetID,
-		ZKPProof:      dto.ZKPProof,
-		Name:          dto.Name,
-		Value:         dto.Value,
-		Version:       dto.Version,
-		Owner:         dto.Owner,
-		Rights:        dto.Rights,
-		TermsOfAccess: dto.TermsOfAccess,
-		CreatedAt:     dto.TransferableDTO.CreatedAt,
-		CreatedBy:     dto.TransferableDTO.CreatedBy,
-		UpdatedAt:     dto.TransferableDTO.UpdatedAt,
-		UpdatedBy:     dto.TransferableDTO.UpdatedBy,
-		DeletedAt:     dto.TransferableDTO.DeletedAt,
-		DeletedBy:     dto.TransferableDTO.DeletedBy,
+		ID: 				dto.TransferableDTO.ID,
+		PatientID: 			dto.PatientID,
+		AssetID: 			dto.AssetID,
+		Category: 			dto.Category,
+		ResourceType: 		dto.ResourceType,
+		PrimitiveType: 		dto.PrimitiveType,
+		Name: 				dto.Name,
+		Value: 				dto.Value,
+		Version: 			dto.Version,
+		Source: 			dto.Source,
+		Rights: 			dto.Rights,
+		TermsOfAccess: 		dto.TermsOfAccess,
+		CreatedAt:     		dto.TransferableDTO.CreatedAt,
+		CreatedBy:     		dto.TransferableDTO.CreatedBy,
+		UpdatedAt:     		dto.TransferableDTO.UpdatedAt,
+		UpdatedBy:     		dto.TransferableDTO.UpdatedBy,
+		DeletedAt:     		dto.TransferableDTO.DeletedAt,
+		DeletedBy:     		dto.TransferableDTO.DeletedBy
 	}
 }
 

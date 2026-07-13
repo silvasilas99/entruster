@@ -82,7 +82,7 @@ func InitializeIndex(es *elasticsearch.Client, indexName string) error {
 				"name":            {"type": "text", "fields": {"keyword": {"type": "keyword"}}},
 				"value":           {"type": "text"},
 				"version":         {"type": "keyword"},
-				"owner":           {"type": "keyword"},
+				"source":           {"type": "keyword"},
 				"rights":          {"type": "text"},
 				"terms_of_access": {"type": "text"},
 				"created_at":      {"type": "date"},

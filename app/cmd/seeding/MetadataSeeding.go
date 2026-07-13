@@ -20,11 +20,11 @@ import (
 type Payload struct {
 	PatientID     uint64
 	AssetID       uint64
-	ZKPProof      string
+	Category      string
 	Name          string
 	Value         string
 	Version       string
-	Owner         string
+	Source         string
 	Rights        string
 	TermsOfAccess string
 	CreatedAt     string
@@ -118,11 +118,11 @@ func generatePayloads(count int) []Payload {
 		payloads[i] = Payload{
 			PatientID:     uint64(rand.Intn(1000)),
 			AssetID:       uint64(rand.Intn(1000000)),
-			ZKPProof:      zkp,
+			Category:      zkp,
 			Name:          name,
 			Value:         fhirData,
 			Version:       "1.0",
-			Owner:         "Hospital_Interop",
+			Source:         "Hospital_Interop",
 			Rights:        "Read",
 			TermsOfAccess: "Consent Required",
 			CreatedAt:     now,
@@ -140,11 +140,11 @@ func submitTx(svc *metadata.MetadataService, p Payload) error {
 		0,
 		p.PatientID,
 		p.AssetID,
-		p.ZKPProof,
+		p.Category,
 		p.Name,
 		p.Value,
 		p.Version,
-		p.Owner,
+		p.Source,
 		p.Rights,
 		p.TermsOfAccess,
 		p.CreatedAt,

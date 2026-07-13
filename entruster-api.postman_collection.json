@@ -39,7 +39,7 @@
                         "url": {"raw": "{{base_url}}/api/metadata/", "host": ["{{base_url}}"], "path": ["api","metadata",""]},
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"patient_id\": 1,\n    \"asset_id\": 100,\n    \"name\": \"ECG Recording\",\n    \"value\": \"Base64EncodedECGData\",\n    \"version\": \"1.0\",\n    \"owner\": \"Hospital A\",\n    \"rights\": \"read-only\",\n    \"terms_of_access\": \"Authorized personnel only\",\n    \"zkp_proof\": \"zk_proof_string_here\"\n}"
+                            "raw": "{\n    \"patient_id\": 1,\n    \"asset_id\": 100,\n    \"name\": \"ECG Recording\",\n    \"value\": \"Base64EncodedECGData\",\n    \"version\": \"1.0\",\n    \"owner\": \"Hospital A\",\n    \"rights\": \"read-only\",\n    \"terms_of_access\": \"Authorized personnel only\",\n    \"category\": \"zk_proof_string_here\"\n}"
                         }
                     }
                 },

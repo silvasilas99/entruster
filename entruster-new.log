@@ -1,0 +1,71 @@
+✅ Connected to Fabric — metadatachannel
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+2026/07/10 15:57:55 Successfully connected to Elasticsearch at http://localhost:9200
+2026/07/10 15:57:55 ✅ Elasticsearch index "metadata" already exists
+2026/07/10 15:57:55 ✅ Elasticsearch index "audit" already exists
+[GIN-debug] GET    /swagger/*any             --> github.com/swaggo/gin-swagger.CustomWrapHandler.func1 (3 handlers)
+[GIN-debug] GET    /api/mock/user            --> github.com/silvasilas99/entruster/routes.MockUserHandler (3 handlers)
+[GIN-debug] POST   /api/metadata/            --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*MetadataCrudController).Store.func2 (4 handlers)
+[GIN-debug] GET    /api/metadata/            --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetAll.func3 (4 handlers)
+[GIN-debug] GET    /api/metadata/:id         --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetMetadataByIDHandler.func4 (4 handlers)
+[GIN-debug] PUT    /api/metadata/:id         --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*MetadataCrudController).UpdateMetadataByIDHandler.func5 (4 handlers)
+[GIN-debug] DELETE /api/metadata/:id         --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*MetadataCrudController).DeleteByID.func6 (4 handlers)
+[GIN-debug] GET    /api/metadata/:id/auditory --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetMetadataAuditoryByIDHandler.func7 (4 handlers)
+[GIN-debug] GET    /api/metadata/:id/history --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetMetadataNativeHistoryByIDHandler.func8 (4 handlers)
+[GIN-debug] POST   /api/thirdpartyappevent/  --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*ThirdPartyAppEventCrudController).Store.func10 (4 handlers)
+[GIN-debug] GET    /api/thirdpartyappevent/  --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetAll.func11 (4 handlers)
+[GIN-debug] GET    /api/thirdpartyappevent/:id --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetThirdPartyAppEventByIDHandler.func12 (4 handlers)
+[GIN-debug] PUT    /api/thirdpartyappevent/:id --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*ThirdPartyAppEventCrudController).UpdateThirdPartyAppEventByIDHandler.func13 (4 handlers)
+[GIN-debug] DELETE /api/thirdpartyappevent/:id --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*ThirdPartyAppEventCrudController).DeleteByID.func14 (4 handlers)
+[GIN-debug] GET    /api/thirdpartyappevent/:id/auditory --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetThirdPartyAppEventAuditoryByIDHandler.func15 (4 handlers)
+[GIN-debug] GET    /api/thirdpartyappevent/:id/history --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetThirdPartyAppEventNativeHistoryByIDHandler.func16 (4 handlers)
+[GIN-debug] GET    /api/health/elasticsearch --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetHealthHandler.func17 (3 handlers)
+🚀 Server running on http://localhost:8081
+📄 Swagger UI at http://localhost:8081/swagger/index.html
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8081
+✅ Connected to Fabric — metadatachannel
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+2026/07/10 15:58:59 Successfully connected to Elasticsearch at http://localhost:9200
+2026/07/10 15:58:59 ✅ Elasticsearch index "metadata" already exists
+2026/07/10 15:58:59 ✅ Elasticsearch index "audit" already exists
+[GIN-debug] GET    /swagger/*any             --> github.com/swaggo/gin-swagger.CustomWrapHandler.func1 (3 handlers)
+[GIN-debug] GET    /api/mock/user            --> github.com/silvasilas99/entruster/routes.MockUserHandler (3 handlers)
+[GIN-debug] POST   /api/metadata/            --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*MetadataCrudController).Store.func2 (4 handlers)
+[GIN-debug] GET    /api/metadata/            --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetAll.func3 (4 handlers)
+[GIN-debug] GET    /api/metadata/:id         --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetMetadataByIDHandler.func4 (4 handlers)
+[GIN-debug] PUT    /api/metadata/:id         --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*MetadataCrudController).UpdateMetadataByIDHandler.func5 (4 handlers)
+[GIN-debug] DELETE /api/metadata/:id         --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*MetadataCrudController).DeleteByID.func6 (4 handlers)
+[GIN-debug] GET    /api/metadata/:id/auditory --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetMetadataAuditoryByIDHandler.func7 (4 handlers)
+[GIN-debug] GET    /api/metadata/:id/history --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetMetadataNativeHistoryByIDHandler.func8 (4 handlers)
+[GIN-debug] POST   /api/thirdpartyappevent/  --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*ThirdPartyAppEventCrudController).Store.func10 (4 handlers)
+[GIN-debug] GET    /api/thirdpartyappevent/  --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetAll.func11 (4 handlers)
+[GIN-debug] GET    /api/thirdpartyappevent/:id --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetThirdPartyAppEventByIDHandler.func12 (4 handlers)
+[GIN-debug] PUT    /api/thirdpartyappevent/:id --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*ThirdPartyAppEventCrudController).UpdateThirdPartyAppEventByIDHandler.func13 (4 handlers)
+[GIN-debug] DELETE /api/thirdpartyappevent/:id --> github.com/silvasilas99/entruster/routes.SetupRoutes.(*ThirdPartyAppEventCrudController).DeleteByID.func14 (4 handlers)
+[GIN-debug] GET    /api/thirdpartyappevent/:id/auditory --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetThirdPartyAppEventAuditoryByIDHandler.func15 (4 handlers)
+[GIN-debug] GET    /api/thirdpartyappevent/:id/history --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetThirdPartyAppEventNativeHistoryByIDHandler.func16 (4 handlers)
+[GIN-debug] GET    /api/health/elasticsearch --> github.com/silvasilas99/entruster/routes.SetupRoutes.GetHealthHandler.func17 (3 handlers)
+🚀 Server running on http://localhost:8081
+📄 Swagger UI at http://localhost:8081/swagger/index.html
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8081
+2026/07/10 15:59:16 [JWTAuth] User Dr. Silas Silva (usr_777) authenticated successfully for path: /api/thirdpartyappevent/
+[ThirdPartyAppEventService][RegisterThirdPartyAppEvent]: Storing thirdpartyappevent on blockchain: {TransferableDTO:{ID:0 CreatedAt: UpdatedAt: DeletedAt: CreatedBy:Dr. Silas Silva UpdatedBy: DeletedBy:} AppID:app_001 EventType:USER_LOGIN EventData:{"ip":"192.168.1.1"} Description:User authenticated via OAuth2}
+[GIN] 2026/07/10 - 15:59:16 | 500 |   76.936422ms |             ::1 | POST     "/api/thirdpartyappevent/"
+2026/07/10 15:59:24 [JWTAuth] User Dr. Silas Silva (usr_777) authenticated successfully for path: /api/metadata/
+[MetadataService][RegisterMetadata]: Storing metadata on blockchain: {TransferableDTO:{ID:0 CreatedAt: UpdatedAt: DeletedAt: CreatedBy:Dr. Silas Silva UpdatedBy: DeletedBy:} PatientID:1 AssetID:1 Category:abc Name:TestMeta Value:val Version:1.0 Owner:owner1 Rights:read TermsOfAccess:none}
+*** Transaction committed successfully. Generated ID: 9
+[GIN] 2026/07/10 - 15:59:27 | 200 |  2.956729992s |             ::1 | POST     "/api/metadata/"
