@@ -29,6 +29,11 @@ e execute as tarefas listadas a seguir:
 
 # TAREFAS:
 
+## 0: Criar entidades e tabelas para armazenar categorias de metadados, termos de acesso (acesso publico, restrito ou confidencial) e permissionamento (ações permitidas)
+## 1: Mover ./chaincode/ ./app/core/chaincode/
+## 2: Usar ChaincodeQuery.go invés de main.go, para remover redundância
+## 3: Remover inicialização dos serviços como auditória, elasticsearch, observer, etc de dentro do api_routes.go
+## 4: Criar mecanismo para exportação de metadados de forma segura
 ## 10: Criar testes de unidade para principais métodos (que façam sentido ser testados estaticamente)
 ## 11: Criar testes de integração para operações com ES e com o HF
 
