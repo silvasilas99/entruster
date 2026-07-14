@@ -14,7 +14,7 @@ import (
 	"github.com/silvasilas99/entruster/utils"
 )
 
-// GetAll handles GET /api/metadata/
+// GetAllHandler handles GET /api/metadata/
 //
 //	@Summary		List all metadata assets
 //	@Tags			metadata
@@ -29,7 +29,7 @@ import (
 //	@Success		200	{object}	utils.SuccessResponse{data=[]map[string]interface{}}
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/metadata/ [get]
-func GetAll(contract *client.Contract, observer *MetadataObserver, elasticSvc *elasticsearch.ElasticService) gin.HandlerFunc {
+func GetAllHandler(contract *client.Contract, observer *MetadataObserver, elasticSvc *elasticsearch.ElasticService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		filter := &elasticsearch.MetadataFilter{
 			PatientID:      c.Query("patient_id"),
@@ -96,7 +96,7 @@ func GetAll(contract *client.Contract, observer *MetadataObserver, elasticSvc *e
 //	@Failure		400	{object}	utils.ErrorResponse
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/metadata/{id} [get]
-func GetMetadataByIDHandler(contract *client.Contract) gin.HandlerFunc {
+func GetByIDHandler(contract *client.Contract) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if id == "" {
@@ -113,7 +113,7 @@ func GetMetadataByIDHandler(contract *client.Contract) gin.HandlerFunc {
 	}
 }
 
-// GetMetadataAuditoryByIDHandler handles GET /api/metadata/:id/auditory
+// GetAuditoryByIDHandler handles GET /api/metadata/:id/auditory
 //
 //	@Summary		Get audit trail for a metadata asset
 //	@Description	Returns the full immutable history of the asset from the audit service.
@@ -123,7 +123,7 @@ func GetMetadataByIDHandler(contract *client.Contract) gin.HandlerFunc {
 //	@Success		200	{object}	utils.SuccessResponse{data=[]audit.AuditModel}
 //	@Failure		400	{object}	utils.ErrorResponse
 //	@Router			/metadata/{id}/auditory [get]
-func GetMetadataAuditoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFunc {
+func GetAuditoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if id == "" {
@@ -145,7 +145,7 @@ func GetMetadataAuditoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFun
 //	@Success		200	{object}	utils.SuccessResponse{data=[]audit.HistoryRecord}
 //	@Failure		400	{object}	utils.ErrorResponse
 //	@Router			/metadata/{id}/history [get]
-func GetMetadataNativeHistoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFunc {
+func GetNativeHistoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if id == "" {

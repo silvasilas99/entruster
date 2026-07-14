@@ -21,7 +21,7 @@ func NewMetadataCrudController(contract *client.Contract, observer *MetadataObse
 	}
 }
 
-func (c *MetadataCrudController) Store() gin.HandlerFunc {
+func (c *MetadataCrudController) StoreHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var metadataDTO MetadataDTO
 
@@ -54,7 +54,7 @@ func (c *MetadataCrudController) Store() gin.HandlerFunc {
 	}
 }
 
-func (c *MetadataCrudController) UpdateMetadataByIDHandler() gin.HandlerFunc {
+func (c *MetadataCrudController) UpdateByIdHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		id := ctx.Param("id")
 		if id == "" {
@@ -82,7 +82,7 @@ func (c *MetadataCrudController) UpdateMetadataByIDHandler() gin.HandlerFunc {
 	}
 }
 
-func (c *MetadataCrudController) DeleteByID() gin.HandlerFunc {
+func (c *MetadataCrudController) DeleteByIdHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		id := ctx.Param("id")
 		if id == "" {

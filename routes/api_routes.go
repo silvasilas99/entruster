@@ -24,12 +24,12 @@ func SetupRoutes(contract *client.Contract) *gin.Engine {
 	elasticSvc := elasticsearch.NewElasticService()
 	chaincodeQuery := chaincode.NewChaincodeQuery(contract)
 	auditSvc := audit.NewAuditService(elasticSvc, chaincodeQuery)
+	
 	metadataObserver := metadata.NewMetadataObserver(auditSvc, elasticSvc)
+	metadataCrudController := metadata.NewMetadataCrudController(contract, metadataObserver)
 
-	crudCtrl := metadata.NewMetadataCrudController(contract, metadataObserver)
 	thirdPartyAppEventObserver := thirdpartyappevent.NewThirdPartyAppEventObserver(auditSvc, elasticSvc)
-	thirdPartyAppEventCrudCtrl := thirdpartyappevent.NewThirdPartyAppEventCrudController(contract, thirdPartyAppEventObserver)
-
+	thirdPartyAppEventCrudController := thirdpartyappevent.NewThirdPartyAppEventCrudController(contract, thirdPartyAppEventObserver)
 
 	// Swagger UI route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -40,25 +40,23 @@ func SetupRoutes(contract *client.Contract) *gin.Engine {
 	metadataRoutes := r.Group("/api/metadata")
 	metadataRoutes.Use(middleware.JWTAuth())
 	{
-		metadataRoutes.POST("/", crudCtrl.Store())
-		metadataRoutes.GET("/", metadata.GetAll(contract, metadataObserver, elasticSvc))
-		metadataRoutes.GET("/:id", metadata.GetMetadataByIDHandler(contract))
-		metadataRoutes.PUT("/:id", crudCtrl.UpdateMetadataByIDHandler())
-		metadataRoutes.DELETE("/:id", crudCtrl.DeleteByID())
-		metadataRoutes.GET("/:id/auditory", metadata.GetMetadataAuditoryByIDHandler(auditSvc))
-		metadataRoutes.GET("/:id/history", metadata.GetMetadataNativeHistoryByIDHandler(auditSvc))
+		metadataRoutes.POST("/", metadataCrudController.StoreHandler())
+		metadataRoutes.PUT("/:id", metadataCrudController.UpdateByIdHandler())
+		metadataRoutes.DELETE("/:id", metadataCrudController.DeleteByIdHandler())
+		metadataRoutes.GET("/", metadata.GetAllHandler(contract, metadataObserver, elasticSvc))
+		metadataRoutes.GET("/:id", metadata.GetByIdHandler(contract))
+		metadataRoutes.GET("/:id/auditory", metadata.GetAuditoryByIDHandler(auditSvc))
+		metadataRoutes.GET("/:id/history", metadata.GetNativeHistoryByIDHandler(auditSvc))
 	}
 
 	thirdpartyappeventRoutes := r.Group("/api/thirdpartyappevent")
 	thirdpartyappeventRoutes.Use(middleware.JWTAuth())
 	{
-		thirdpartyappeventRoutes.POST("/", thirdPartyAppEventCrudCtrl.Store())
-		thirdpartyappeventRoutes.GET("/", thirdpartyappevent.GetAll(contract, thirdPartyAppEventObserver, elasticSvc))
-		thirdpartyappeventRoutes.GET("/:id", thirdpartyappevent.GetThirdPartyAppEventByIDHandler(contract))
-		thirdpartyappeventRoutes.PUT("/:id", thirdPartyAppEventCrudCtrl.UpdateThirdPartyAppEventByIDHandler())
-		thirdpartyappeventRoutes.DELETE("/:id", thirdPartyAppEventCrudCtrl.DeleteByID())
-		thirdpartyappeventRoutes.GET("/:id/auditory", thirdpartyappevent.GetThirdPartyAppEventAuditoryByIDHandler(auditSvc))
-		thirdpartyappeventRoutes.GET("/:id/history", thirdpartyappevent.GetThirdPartyAppEventNativeHistoryByIDHandler(auditSvc))
+		thirdpartyappeventRoutes.POST("/", thirdPartyAppEventCrudController.StoreHandler())
+		thirdpartyappeventRoutes.GET("/", thirdpartyappevent.GetAllHandler(contract, thirdPartyAppEventObserver, elasticSvc))
+		thirdpartyappeventRoutes.GET("/:id", thirdpartyappevent.GetByIdHandler(contract))
+		thirdpartyappeventRoutes.GET("/:id/auditory", thirdpartyappevent.GetAuditoryByIdHandler(auditSvc))
+		thirdpartyappeventRoutes.GET("/:id/history", thirdpartyappevent.GetNativeHistoryByIdHandler(auditSvc))
 	}
 
 	// Health check routes

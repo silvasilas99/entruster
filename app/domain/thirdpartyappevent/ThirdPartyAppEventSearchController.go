@@ -14,7 +14,7 @@ import (
 	"github.com/silvasilas99/entruster/utils"
 )
 
-// GetAll handles GET /api/thirdpartyappevent/
+// GetAllHandler handles GET /api/thirdpartyappevent/
 //
 //	@Summary		List all thirdpartyappevent assets
 //	@Tags			thirdpartyappevent
@@ -29,7 +29,7 @@ import (
 //	@Success		200	{object}	utils.SuccessResponse{data=[]map[string]interface{}}
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/thirdpartyappevent/ [get]
-func GetAll(contract *client.Contract, observer *ThirdPartyAppEventObserver, elasticSvc *elasticsearch.ElasticService) gin.HandlerFunc {
+func GetAllHandler(contract *client.Contract, observer *ThirdPartyAppEventObserver, elasticSvc *elasticsearch.ElasticService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		filter := &elasticsearch.MetadataFilter{
 			PatientID:      c.Query("app_id"), // Mapping app_id to PatientID field temporarily for Elasticsearch
@@ -85,7 +85,7 @@ func GetAll(contract *client.Contract, observer *ThirdPartyAppEventObserver, ela
 	}
 }
 
-// GetThirdPartyAppEventByIDHandler handles GET /api/thirdpartyappevent/:id
+// GetByIdHandler handles GET /api/thirdpartyappevent/:id
 //
 //	@Summary		Get thirdpartyappevent by ID
 //	@Description	Evaluates GetThirdPartyAppEventById on the Fabric ledger and returns the matching thirdpartyappevent asset.
@@ -96,7 +96,7 @@ func GetAll(contract *client.Contract, observer *ThirdPartyAppEventObserver, ela
 //	@Failure		400	{object}	utils.ErrorResponse
 //	@Failure		500	{object}	utils.ErrorResponse
 //	@Router			/thirdpartyappevent/{id} [get]
-func GetThirdPartyAppEventByIDHandler(contract *client.Contract) gin.HandlerFunc {
+func GetByIdHandler(contract *client.Contract) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if id == "" {
@@ -113,7 +113,7 @@ func GetThirdPartyAppEventByIDHandler(contract *client.Contract) gin.HandlerFunc
 	}
 }
 
-// GetThirdPartyAppEventAuditoryByIDHandler handles GET /api/thirdpartyappevent/:id/auditory
+// GetAuditoryByIdHandler handles GET /api/thirdpartyappevent/:id/auditory
 //
 //	@Summary		Get audit trail for a thirdpartyappevent asset
 //	@Description	Returns the full immutable history of the asset from the audit service.
@@ -123,7 +123,7 @@ func GetThirdPartyAppEventByIDHandler(contract *client.Contract) gin.HandlerFunc
 //	@Success		200	{object}	utils.SuccessResponse{data=[]audit.AuditModel}
 //	@Failure		400	{object}	utils.ErrorResponse
 //	@Router			/thirdpartyappevent/{id}/auditory [get]
-func GetThirdPartyAppEventAuditoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFunc {
+func GetAuditoryByIdHandler(auditSvc *audit.AuditService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if id == "" {
@@ -135,7 +135,7 @@ func GetThirdPartyAppEventAuditoryByIDHandler(auditSvc *audit.AuditService) gin.
 	}
 }
 
-// GetThirdPartyAppEventNativeHistoryByIDHandler handles GET /api/thirdpartyappevent/:id/history
+// GetNativeHistoryByIdHandler handles GET /api/thirdpartyappevent/:id/history
 //
 //	@Summary		Get native transaction history for a thirdpartyappevent asset
 //	@Description	Returns the immutable transaction history of the asset directly from the Hyperledger ledger.
@@ -145,7 +145,7 @@ func GetThirdPartyAppEventAuditoryByIDHandler(auditSvc *audit.AuditService) gin.
 //	@Success		200	{object}	utils.SuccessResponse{data=[]audit.HistoryRecord}
 //	@Failure		400	{object}	utils.ErrorResponse
 //	@Router			/thirdpartyappevent/{id}/history [get]
-func GetThirdPartyAppEventNativeHistoryByIDHandler(auditSvc *audit.AuditService) gin.HandlerFunc {
+func GetNativeHistoryByIdHandler(auditSvc *audit.AuditService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if id == "" {

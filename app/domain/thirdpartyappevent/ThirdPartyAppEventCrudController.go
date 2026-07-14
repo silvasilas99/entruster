@@ -21,7 +21,7 @@ func NewThirdPartyAppEventCrudController(contract *client.Contract, observer *Th
 	}
 }
 
-func (c *ThirdPartyAppEventCrudController) Store() gin.HandlerFunc {
+func (c *ThirdPartyAppEventCrudController) StoreHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var thirdPartyAppEventDTO ThirdPartyAppEventDTO
 
@@ -51,55 +51,5 @@ func (c *ThirdPartyAppEventCrudController) Store() gin.HandlerFunc {
 			"app_id":     thirdPartyAppEventDTO.AppID,
 			"event_type": thirdPartyAppEventDTO.EventType,
 		})
-	}
-}
-
-func (c *ThirdPartyAppEventCrudController) UpdateThirdPartyAppEventByIDHandler() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		id := ctx.Param("id")
-		if id == "" {
-			utils.SendError(ctx, http.StatusBadRequest, "ID parameter is required")
-			return
-		}
-		var req ThirdPartyAppEventModel
-		if err := ctx.ShouldBindJSON(&req); err != nil {
-			utils.SendError(ctx, http.StatusBadRequest, "Invalid request body. Check the required fields and their types.")
-			return
-		}
-
-		// Set dynamic UpdatedBy from authenticated user info
-		if user, exists := ctx.Get("currentUser"); exists {
-			if userInfo, ok := user.(*middleware.UserInfo); ok {
-				req.UpdatedBy = userInfo.Name
-			}
-		}
-
-		if err := c.thirdPartyAppEventService.UpdateThirdPartyAppEventByID(id, req); err != nil {
-			utils.SendError(ctx, http.StatusInternalServerError, err.Error())
-			return
-		}
-		utils.SendSuccess(ctx, "ThirdPartyAppEvent updated successfully", gin.H{"id": id})
-	}
-}
-
-func (c *ThirdPartyAppEventCrudController) DeleteByID() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		id := ctx.Param("id")
-		if id == "" {
-			utils.SendError(ctx, http.StatusBadRequest, "ID parameter is required")
-			return
-		}
-		deletedBy := "system"
-		if user, exists := ctx.Get("currentUser"); exists {
-			if userInfo, ok := user.(*middleware.UserInfo); ok {
-				deletedBy = userInfo.Name
-			}
-		}
-
-		if err := c.thirdPartyAppEventService.DeleteThirdPartyAppEventByID(id, deletedBy); err != nil {
-			utils.SendError(ctx, http.StatusInternalServerError, err.Error())
-			return
-		}
-		utils.SendSuccess(ctx, "ThirdPartyAppEvent deleted successfully", gin.H{"id": id})
 	}
 }

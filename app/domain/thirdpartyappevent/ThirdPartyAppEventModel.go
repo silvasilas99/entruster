@@ -5,15 +5,15 @@ import "time"
 type EventTrigged
 
 const (
-	ActionInsert Action = "INSERT"
-	ActionUpdate Action = "UPDATE"
-	ActionDelete Action = "DELETE"
-	ActionRead Action = "READ"
+	ActionInsert 	Action = "INSERT"
+	ActionUpdate 	Action = "UPDATE"
+	ActionDelete 	Action = "DELETE"
+	ActionRead 		Action = "READ"
 )
 
 type ThirdPartyAppEventModel struct {
-	ID 						int64       		`json:"audit_id"`
-	EntityID      			string      		`json:"entity_id"`
+	ID 						int64       		`json:"id"`
+	EntityID      			int64      			`json:"entity_id"`
 	EntityName    			string      		`json:"entity_name"`
 	EntityBeforeAction   	json.RawMessage 	`json:"entity_before_action,omitempty"`
 	EntityAfterAction    	json.RawMessage 	`json:"entity_after_action,omitempty"`
