@@ -18,19 +18,21 @@ import (
 
 // Payload reflete os parâmetros que o smart contract espera em RegisterMetadataOnNetwork.
 type Payload struct {
-	PatientID     uint64
-	AssetID       uint64
-	Category      string
-	Name          string
-	Value         string
-	Version       string
-	Source         string
-	Rights        string
-	TermsOfAccess string
-	CreatedAt     string
-	UpdatedAt     string
-	CreatedBy     string
-	UpdatedBy     string
+	PatientID     	uint64
+	AssetID       	uint64
+	Category      	string
+	ResourceType	string
+	PrimitiveType	string
+	Name          	string
+	Value         	string
+	Version       	string
+	Source         	string
+	Rights        	string
+	TermsOfAccess 	string
+	CreatedAt     	string
+	UpdatedAt     	string
+	CreatedBy     	string
+	UpdatedBy     	string
 }
 
 // generateFHIRPatient cria um mock de um recurso FHIR Patient.
@@ -98,37 +100,35 @@ func generatePayloads(count int) []Payload {
 	now := time.Now().UTC().Format(time.RFC3339)
 	for i := 0; i < count; i++ {
 		t := rand.Intn(3)
-		var fhirData, name string
+		var fhirData, resourceType string
 		switch t {
-		case 0:
-			fhirData = generateFHIRPatient()
-			name = "FHIR_Patient"
-		case 1:
-			fhirData = generateFHIRObservation()
-			name = "FHIR_Observation"
-		case 2:
-			fhirData = generateFHIRDiagnosticReport()
-			name = "FHIR_DiagnosticReport"
+			case 0:
+				fhirData = generateFHIRPatient()
+				resourceType = "Patient"
+			case 1:
+				fhirData = generateFHIRObservation()
+				resourceType = "Observation"
+			case 2:
+				fhirData = generateFHIRDiagnosticReport()
+				resourceType = "Report"
 		}
 
-		// Simulando a hash ZKP da informação
-		hash := sha256.Sum256([]byte(fhirData))
-		zkp := fmt.Sprintf("%x", hash)
-
-		payloads[i] = Payload{
-			PatientID:     uint64(rand.Intn(1000)),
-			AssetID:       uint64(rand.Intn(1000000)),
-			Category:      zkp,
-			Name:          name,
-			Value:         fhirData,
-			Version:       "1.0",
-			Source:         "Hospital_Interop",
-			Rights:        "Read",
-			TermsOfAccess: "Consent Required",
-			CreatedAt:     now,
-			UpdatedAt:     now,
-			CreatedBy:     "Seeder_Caliper_Sim",
-			UpdatedBy:     "Seeder_Caliper_Sim",
+		payloads[i] = Payload {
+			PatientID:     		uint64(rand.Intn(1000)),
+			AssetID:       		uint64(rand.Intn(1000000)),
+			Category:      		"Administrative / Security-related",
+			ResourceType: 		resourceType,
+			PrimitiveType: 		"string",
+			Name:          		name,
+			Value:         		fhirData,
+			Version:       		"1.0",
+			Source:        		"Hospital_Interop",
+			Rights:        		"Read",
+			TermsOfAccess: 		"Consent Required",
+			CreatedAt:     		now,
+			UpdatedAt:     		now,
+			CreatedBy:     		"Seeder_Caliper_Sim",
+			UpdatedBy:     		"Seeder_Caliper_Sim",
 		}
 	}
 	return payloads
@@ -141,6 +141,8 @@ func submitTx(svc *metadata.MetadataService, p Payload) error {
 		p.PatientID,
 		p.AssetID,
 		p.Category,
+		p.ResourceType,
+		p.PrimitiveType,
 		p.Name,
 		p.Value,
 		p.Version,
